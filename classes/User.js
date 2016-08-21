@@ -3,7 +3,6 @@
 
 // Imports
 const crypto = require('crypto');
-const sha256 = crypto.createHash('sha256');
 
 const Log = require('./Log.js');
 const RandString = require('./RandString.js');
@@ -22,7 +21,7 @@ class User {
     this.name = userName.substr(0, 50) || ''; // A users name can not be longer than 50 chars!
     this.token = User.generateToken();
     // Log about this
-    Log.write(Log.DEBUG, 'User created with name / id / token', this.name, '/', this.id, '/', this.token);
+    Log.write(Log.DEBUG, 'User created with name / id / token:', this.name, '/', this.id, '/', this.token);
   }
 
   /**
@@ -41,6 +40,7 @@ class User {
     // Test age
     if (time < Date.now() - 60000 || time > Date.now()) return false;
     // Test the hash
+    const sha256 = crypto.createHash('sha256');
     sha256.update(this.token.concat(time));
     return sha256.digest('hex') == hash;
   }

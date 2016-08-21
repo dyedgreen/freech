@@ -180,7 +180,7 @@ class Chat {
       // Keep a clean event loop
       setImmediate(() => {
         // Get the messages
-        const messages = this.messages.slice(1 + offset - count, offset);
+        const messages = this.messages.slice(1 + offset - count, offset + 1);
         // Send the messages to the socket
         const socketResponse = {
           type: NetworkMessageType.DATA.MESSAGELIST,
@@ -230,7 +230,7 @@ class Chat {
   pushUserList() {
     setImmediate(() => {
       // Build the user list
-      let users = [];
+      let userList = [];
       this.users.forEach(user => {
         userList.push({
           id: user.id,
@@ -243,7 +243,7 @@ class Chat {
       try {
         const socketMessage = {
           type: NetworkMessageType.UPDATE.USERLIST,
-          users,
+          users: userList,
         };
         const socketMessageString = JSON.stringify(socketMessage);
         this.connections.forEach(conn => {
@@ -323,7 +323,7 @@ class Chat {
       if (User.validateId(userId)) {
         // Add the user
         const newUser = new User(userId, userName);
-        this.users.push(new User);
+        this.users.push(newUser);
         // Update everyones user list
         this.pushUserList();
         // Log about this
@@ -335,8 +335,8 @@ class Chat {
         return false;
       }
     } else {
-      // User already exists
-      return true;
+      // User already exists, can't be added
+      return false;
     }
   }
 
@@ -349,7 +349,7 @@ class Chat {
   */
   indexOfUser(userId) {
     // Try to find the requested user
-    for (i = 0; i < this.users.length; i ++) {
+    for (let i = 0; i < this.users.length; i ++) {
       if (this.users[i].id === userId) return i;
     }
     return -1;
@@ -364,7 +364,7 @@ class Chat {
   */
   indexOfConnectedUser(userId) {
     // Try to find the requested user
-    for (i = 0; i < this.connections.length; i ++) {
+    for (let i = 0; i < this.connections.length; i ++) {
       if (this.connections[i].userId === userId) return i;
     }
     return -1;
@@ -380,7 +380,7 @@ class Chat {
   */
   indexOfMessage(messageId) {
     // Try to find the requested message
-    for (i = 0; i < this.messages.length; i ++) {
+    for (let i = 0; i < this.messages.length; i ++) {
       if (this.messages[i].id === messageId) return i;
     }
     return -1;
@@ -398,8 +398,14 @@ class Chat {
     this.destructor.timeout = setTimeout(() => {
       // Log about this
       Log.write(Log.DEBUG, 'Destructing chat with id', this.id);
-      // Call the destructor callback
-      this.destructor.callback();
+      // Disconnect all clients
+      this.connections.forEach(conn => {
+        this.disconnectUser(conn.userId);
+      });
+      // Call the destructor callback (the destructor is passed the chats id)
+      setImmediate(() => {
+        this.destructor.callback(this.id);
+      });
     }, 86400000); // 24 h / one day
     // Log about this
     Log.write(Log.DEBUG, 'Chat destructor rescheduled for chat with id', this.id);

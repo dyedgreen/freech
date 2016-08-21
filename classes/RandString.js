@@ -21,7 +21,7 @@ class RandString {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let string = '';
     if (typeof length === 'number' && length > 0) {
-      for (i = 0; i < length; i ++) {
+      for (let i = 0; i < length; i ++) {
         string = string.concat(chars.substr(Math.floor(Math.random() * (chars.length - 1)), 1));
       }
     }

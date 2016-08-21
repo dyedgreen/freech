@@ -1,18 +1,6 @@
 'use strict';
 
 
-// Private vars
-const messageTypes = [
-  // Request to join a chat
-  'chatHandshake',
-  // Request to add a message
-  'chatMessageUpdate',
-  // Message from server, adding messages to a chat
-  'chatNewMessage',
-  // Message from server, containing a new user list
-  'chatUserList',
-];
-
 /**
 * NetworkMessage
 *

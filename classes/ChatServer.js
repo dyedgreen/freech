@@ -6,6 +6,7 @@ const http = require('http');
 const fs = require('fs');
 
 const Log = require('./Log.js');
+const Url = require('./Url.js');
 const ChatManager = require('./ChatManager.js');
 
 /**
@@ -101,13 +102,20 @@ class ChatServer {
   handleRequest(req, res) {
     // Log about this
     Log.write(Log.DEBUG, 'Chat server request recived');
-    // Evaluate url
-    if (/\/api.*/.test(req.url)) {
-      // The call goes to the api (special page)
-      this.chatManager.resolve(req.url, res);
-    } else {
-      // Nothing special here, serve a static file
-      this.handleFile(req, res);
+    // Evaluate url / catch special endpoints
+    const url = new Url(req.url);
+    const endpoint = url.path.length > 0 ? url.path[0] : '';
+    switch (endpoint) {
+      case 'api': {
+        // The call goes to the api, determine the correct endpoint
+        this.chatManager.resolve(url, res);
+        break;
+      }
+      default: {
+        // Nothing special here, serve a static file
+        this.handleFile(req, res);
+        break;
+      }
     }
   }
 
