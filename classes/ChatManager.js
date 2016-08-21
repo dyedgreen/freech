@@ -5,6 +5,8 @@
 const engine = require('engine.io');
 
 const Log = require('./Log.js');
+const NetworkMessageType = require('./NetworkMessageType.js');
+const Chat = require('./Chat.js');
 
 /**
 * Chat Manager
