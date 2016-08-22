@@ -208,13 +208,13 @@ Vue.filter('timestamp', function(value) {
 	if (typeof value === 'number') {
 		var age = Date.now() - value;
 		// Determine age
-		if (age < 120000) {
+		/*if (age < 120000) {
 			// Less than two minute
 			return 'just now';
 		} else if (age < 1800000) {
 			// Less than 30 minutes
 			return ''.concat(Math.floor(age / 60000)).concat(' minutes ago');
-		} else if (age < 86400000) {
+		} else */if (age < 86400000) {
 			// Less than a day
 			var date = new Date(value);
 			return ''.concat(date.getHours()).concat(':').concat(date.getMinutes());

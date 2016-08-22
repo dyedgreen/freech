@@ -38,7 +38,7 @@ class User {
   */
   testHash(hash = '', time = 0) {
     // Test age
-    if (time < Date.now() - 60000 || time > Date.now()) return false;
+    if (time < Date.now() - 60000) return false;
     // Test the hash
     const sha256 = crypto.createHash('sha256');
     sha256.update(this.token.concat(time));

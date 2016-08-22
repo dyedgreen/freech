@@ -69,6 +69,7 @@ class Chat {
       // Log about the event
       Log.write(Log.INFO, 'User connected with id', userId);
     } else {
+      console.log(userIndex, this.indexOfConnectedUser(userId), this.users[userIndex].testHash(tokenHash, time));
       setImmediate(() => {
         // Close the socket
         socket.close();
