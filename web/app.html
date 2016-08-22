@@ -19,11 +19,8 @@
 			<h1>People</h1>
 			<!-- The list with all people -->
 			<div class="scroll">
-				<div class="person">
-					<span>Tilman Roeder</span>
-				</div>
-				<div class="person offline">
-					<span>Victoria</span>
+				<div v-for="user in chat.users" class="person {{ user.id | userclass }}">
+					<span>{{ user.name }}</span>
 				</div>
 			</div>
 		</div>
@@ -31,48 +28,42 @@
 		<!-- The Chat -->
 		<div class="chat">
 			<!-- Message Container -->
-			<div class="messages">
+			<div id="chat-messages-scroll" v-on:scroll="chatWindowScroll" class="messages">
 				
 				<!-- A single message -->
-				<div class="message left">
-					<span>Tilman - 19:30</span>
-					<p>This is the message Text</p>
-				</div>
-				
-				<!-- A single message -->
-				<div class="message">
-					<span>Peter - 19:33</span>
-					<p>This is the message Text Of anotheriwbeif wenf wef</p>
+				<div v-for="message in chat.messages" class="message {{ message.userId | userclass }}">
+					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
+					<p>{{ message.text }}</p>
 				</div>
 				
 			</div>
 			<!-- Send Input -->
 			<div class="compose">
-				<input type="text" placeholder="Enter new message">
-				<a href="javascript:void(0)" class="send">Send</a>
+				<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendMessage" placeholder="What's on your mind?">
+				<a href="javascript:void(0)" v-on:click="buttonSendMessage" class="send">Send</a>
 			</div>
 		</div>
 		
 		<!-- New Chat Modal -->
-		<div class="modal" style="display:none">
+		<div class="modal" v-if="ui.displayNewChatPrompt">
 			<h1>New chat</h1>
 			<p>Do you want to create a new chat?</p>
-			<a href="javascript:void(0)" class="button">Create Chat</a>
+			<a href="javascript:void(0)" v-on:click="buttonCreateChat" class="button">Create Chat</a>
 		</div>
 		
 		<!-- Enter Name Modal -->
-		<div class="modal" style="display:none">
-			<h1>Enter name</h1>
-			<p>Please enter your name</p>
-			<input type="text" placeholder="Name">
-			<a href="javascript:void(0)" class="button">Join Chat</a>
+		<div class="modal" v-if="ui.displayNamePrompt">
+			<h1>Your name</h1>
+			<p>Please enter your name.</p>
+			<input type="text" v-model="input.name" v-on:keyup.enter="buttonJoinChat" placeholder="What's your name?">
+			<a href="javascript:void(0)" v-on:click="buttonJoinChat" class="button">Join Chat</a>
 		</div>
 		
 		<!-- Connection Lost Modal -->
-		<div class="modal error" style="display:none">
+		<div class="modal error" v-if="ui.displayDisconnectError">
 			<h1>Connection lost</h1>
-			<p>Do you want to reload the page?</p>
-			<a href="javascript:void(0)" class="button">Reload</a>
+			<p>Do you want to reconnect?</p>
+			<a href="javascript:void(0)" v-on:click="buttonReconnectChat" class="button">Reconnect</a>
 		</div>
 		
 		<!-- Scripts -->

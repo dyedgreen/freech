@@ -84,7 +84,10 @@ class ChatManager {
             url.data.hasOwnProperty('userId') &&
             url.data.hasOwnProperty('userName')
           ) {
-            const userToken = this.chats[this.indexOfChat(url.data.chatId)].addUser(url.data.userId, url.data.userName);
+            const chatId = decodeURI(''.concat(url.data.chatId));
+            const userId = decodeURI(''.concat(url.data.userId));
+            const userName = decodeURI(''.concat(url.data.userName));
+            const userToken = this.chats[this.indexOfChat(chatId)].addUser(userId, userName);
             // Send the user token back to the request
             ApiResponse.sendData(res, userToken, !userToken);
             return;

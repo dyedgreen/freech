@@ -64,7 +64,17 @@ class User {
   * @return {bool}
   */
   static validateId(userId) {
-    return /^[a-zA-Z\d]{128}$/.test(userId);
+    return /^[a-zA-Z\d]{128}$/.test(''.concat(userId));
+  }
+
+  /**
+  * validateName() tests if
+  * a users name is valid.
+  *
+  * @param {string} userName
+  */
+  static validateName(userName) {
+    return typeof userName === 'string' && userName.length > 0;
   }
 
 }

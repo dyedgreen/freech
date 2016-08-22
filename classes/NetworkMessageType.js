@@ -7,8 +7,8 @@
 * Messages are JSON constructed in the following way:
   {
     type: {number},
-    time: {unix-milliseconds / number},
-    data: {any}
+    (time: {unix-milliseconds / number},
+    data: {any})
   }
 */
 class NetworkMessageType {

@@ -93,7 +93,7 @@ html {
 	border-top:1px solid rgba(255,255,255,0.2);
 }
 .sidebar .person.offline {
-	color:rgba(255,255,255,0.5);
+	color:rgba(255,255,255,0.5)!Important;
 }
 .sidebar .person.offline:before {
 	width:10px;
@@ -103,11 +103,42 @@ html {
 	position:absolute;
 	top:20px; right:auto; bottom:20px; left:0;
 
-	background:none;
+	background:none!Important;
 	border:2px solid rgba(255,255,255,0.5);
 	border-radius:100%;
 
 	content:"";
+}
+
+.sidebar .person.blue {
+	color:#359AFF;
+}
+.sidebar .person.blue:before {
+	background:#359AFF;
+}
+.sidebar .person.pink {
+	color:#F92C89;
+}
+.sidebar .person.pink:before {
+	background:#F92C89;
+}
+.sidebar .person.green {
+	color:#2EC4B6;
+}
+.sidebar .person.green:before {
+	background:#2EC4B6;
+}
+.sidebar .person.red {
+	color:#E71D36;
+}
+.sidebar .person.red:before {
+	background:#E71D36;
+}
+.sidebar .person.yellow {
+	color:#FF9F1C;
+}
+.sidebar .person.yellow:before {
+	background:#FF9F1C;
 }
 
 
@@ -142,6 +173,7 @@ html {
 
 .chat .compose input[type=text] {
 	width:auto;
+	width:calc(100% - 100px);
 	height:100%;
 	padding:0 25px;
 	display:block;
@@ -217,7 +249,8 @@ html {
 	position:absolute;
 	top:0; right:0; bottom:75px; left:0;
 
-	overflow:auto;
+	overflow:hidden;
+	overflow-y:auto;
 }
 
 .chat .messages .message {
@@ -227,9 +260,6 @@ html {
 	margin:0 0 25px 0;
 
 	text-align:right;
-
-	background:none;
-	color:rgba(0,0,0,0.2);
 
 	pointer-events:none;
 }
@@ -242,6 +272,8 @@ html {
 	font-weight:600;
 	font-style:italic;
 	line-height:25px;
+	
+	color:rgba(0,0,0,0.2);
 }
 .chat .messages .message > p {
 	width:350px;
@@ -260,14 +292,44 @@ html {
 	border-radius:10px;
 }
 
-.chat .messages .message.left {
+.chat .messages .message.notme {
 	text-align:left;
+}
 
+.chat .messages .message.notme.blue > span {
+	color:#359AFF;
+}
+.chat .messages .message.notme.blue > p {
+	color:#fff;
+	background:#359AFF;
+}
+.chat .messages .message.notme.pink > span {
+	color:#F92C89;
+}
+.chat .messages .message.notme.pink > p {
+	color:#fff;
+	background:#F92C89;
+}
+.chat .messages .message.notme.green > span {
 	color:#2EC4B6;
 }
-.chat .messages .message.left > p {
-	background:#2EC4B6;
+.chat .messages .message.notme.green > p {
 	color:#fff;
+	background:#2EC4B6;
+}
+.chat .messages .message.notme.red > span {
+	color:#E71D36;
+}
+.chat .messages .message.notme.red > p {
+	color:#fff;
+	background:#E71D36;
+}
+.chat .messages .message.notme.yellow > span {
+	color:#FF9F1C;
+}
+.chat .messages .message.notme.yellow > p {
+	color:#fff;
+	background:#FF9F1C;
 }
 
 

@@ -141,7 +141,7 @@ class Chat {
           // Socket message format:
           // { type, count, offset }
           const count = dataObject.hasOwnProperty('count') && typeof dataObject.count === 'number' ? Math.floor(dataObject.count) : 0;
-          const offset = dataObject.hasOwnProperty('offset') && typeof dataObject.offset === 'number' ? Math.floor(dataObject.offset) : this.messages.length - 1;
+          const offset = dataObject.hasOwnProperty('offset') && typeof dataObject.offset === 'number' ? Math.floor(dataObject.offset) : 0;
           this.sendMessages(socket, count, offset);
           break;
         }
@@ -174,17 +174,20 @@ class Chat {
   sendMessages(socket, count, offset) {
     // Validate the count and the offset
     count = count > 0 ? count : 0;
-    offset = offset < this.messages.length && offset > 0 ? offset :0;
+    offset = offset < this.messages.length && offset > 0 ? offset : this.messages.length - 1;
     // Find the messages in the message data if some where requested
     if (count > 0) {
       // Keep a clean event loop
       setImmediate(() => {
         // Get the messages
-        const messages = this.messages.slice(1 + offset - count, offset + 1);
+        const start = 1 + offset - count;
+        const messages = this.messages.slice(start > 0 ? start : 0, offset + 1);
+        const totalMessageCount = this.messages.length;
         // Send the messages to the socket
         const socketResponse = {
           type: NetworkMessageType.DATA.MESSAGELIST,
           messages,
+          totalMessageCount,
         };
         try {
           socket.send(JSON.stringify(socketResponse));
@@ -205,9 +208,11 @@ class Chat {
         // Send the message to all connected users
         try {
           const message = this.messages[messageIndex];
+          const totalMessageCount = this.messages.length;
           const socketMessage = {
             type: NetworkMessageType.UPDATE.NEWMESSAGE,
             message,
+            totalMessageCount,
           };
           const socketMessageString = JSON.stringify(socketMessage);
 
@@ -292,7 +297,7 @@ class Chat {
       const id = RandString.short;
       this.messages.push({
         id,
-        text: messageText,
+        text: messageText.substr(0, 2000), // Current message length limit, be sure to warn on client side!
         userId: userId,
         time: time,
       });
@@ -319,8 +324,8 @@ class Chat {
   addUser(userId, userName) {
     const userIndex = this.indexOfUser(userId);
     if (userIndex === -1) {
-      // Test the user id
-      if (User.validateId(userId)) {
+      // Test the user id & name
+      if (User.validateId(userId) && User.validateName(userName)) {
         // Add the user
         const newUser = new User(userId, userName);
         this.users.push(newUser);
