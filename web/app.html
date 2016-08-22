@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+	<head>
+		<!-- Meta Stuff -->
+		<meta charset="utf-8">
+		<!-- Title -->
+		<title>Freech</title>
+		<!-- Fonts & Css -->
+		<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+		<link href="./css/app.css" rel="stylesheet" type="text/css">
+	</head>
+	
+	<!-- The App -->
+	<body>
+		<!-- The Sidebar (displaying the logged-in users) -->
+		<div class="sidebar">
+			<!-- The Header -->
+			<h1>People</h1>
+			<!-- The list with all people -->
+			<div class="scroll">
+				<div class="person">
+					<span>Tilman Roeder</span>
+				</div>
+				<div class="person offline">
+					<span>Victoria</span>
+				</div>
+			</div>
+		</div>
+		
+		<!-- The Chat -->
+		<div class="chat">
+			<!-- Message Container -->
+			<div class="messages">
+				
+				<!-- A single message -->
+				<div class="message left">
+					<span>Tilman - 19:30</span>
+					<p>This is the message Text</p>
+				</div>
+				
+				<!-- A single message -->
+				<div class="message">
+					<span>Peter - 19:33</span>
+					<p>This is the message Text Of anotheriwbeif wenf wef</p>
+				</div>
+				
+			</div>
+			<!-- Send Input -->
+			<div class="compose">
+				<input type="text" placeholder="Enter new message">
+				<a href="javascript:void(0)" class="send">Send</a>
+			</div>
+		</div>
+		
+		<!-- New Chat Modal -->
+		<div class="modal" style="display:none">
+			<h1>New chat</h1>
+			<p>Do you want to create a new chat?</p>
+			<a href="javascript:void(0)" class="button">Create Chat</a>
+		</div>
+		
+		<!-- Enter Name Modal -->
+		<div class="modal" style="display:none">
+			<h1>Enter name</h1>
+			<p>Please enter your name</p>
+			<input type="text" placeholder="Name">
+			<a href="javascript:void(0)" class="button">Join Chat</a>
+		</div>
+		
+		<!-- Connection Lost Modal -->
+		<div class="modal error" style="display:none">
+			<h1>Connection lost</h1>
+			<p>Do you want to reload the page?</p>
+			<a href="javascript:void(0)" class="button">Reload</a>
+		</div>
+		
+		<!-- Scripts -->
+		<script src="./js/engine.io.js"></script>
+		<script src="./js/forge-sha256.js"></script>
+		<script src="./js/vue.min.js"></script>
+		<script src="./js/app.js"></script>
+	</body>
+	
+</html>
