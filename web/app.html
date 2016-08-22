@@ -23,6 +23,8 @@
 					<span>{{ user.name }}</span>
 				</div>
 			</div>
+			<!-- The share button -->
+			<a href="javascript:void(0)" v-on:click="buttonOpenShare" class="share">Invite a friend</a>
 		</div>
 		
 		<!-- The Chat -->
@@ -42,6 +44,13 @@
 				<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendMessage" placeholder="What's on your mind?">
 				<a href="javascript:void(0)" v-on:click="buttonSendMessage" class="send">Send</a>
 			</div>
+		</div>
+		
+		<!-- Share This Chat Modal -->
+		<div class="modal" v-if="ui.displayShareChatPrompt">
+			<h1>Share this chat</h1>
+			<p>To share this chat, please invite your friends using this URL:<br><span class="url">http://www.freech.com/app.html?{{ chat.chatId }}</span></p>
+			<a href="javascript:void(0)" v-on:click="buttonCloseShare" class="button">Done</a>
 		</div>
 		
 		<!-- New Chat Modal -->

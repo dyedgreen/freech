@@ -112,12 +112,12 @@ var freech = {
 	},
 	
 	// Create message request (that will load new messages)
-	createMessageRequest: function(totalCount, loadCount) {
+	createMessageRequest: function() {
 		var request = {
 			type: 2,
 			count: 10,
+			lastMessageId: chatData.messages.length > 0 ? chatData.messages[0].id : '',
 		};
-		if (totalCount !== -1) request.offset = totalCount - loadCount;
 		return JSON.stringify(request);
 	},
 	
@@ -155,12 +155,13 @@ var chatData = {
 	users: [],
 	socket: false,
 	connected: false,
-	loadingNewMessages: false,
+	loadingOldMessages: false,
 };
 var uiData = {
 	displayNewChatPrompt: true,
 	displayNamePrompt: false,
 	displayDisconnectError: false,
+	displayShareChatPrompt: false,
 };
 var userInput = {
 	name: '',
@@ -186,7 +187,7 @@ Vue.filter('username', function (value) {
 
 // Userclass filter, returns the correct conditional classes for a userId
 Vue.filter('userclass', function (value) {
-	var colors = ['blue', 'pink', 'green', 'red', 'yellow'];
+	var colors = ['blue', 'pink', 'green', 'red', 'yellow', 'orange', 'purple'];
 	var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 	var index = freech.indexOfUser(value);
 	var classlist = '';
@@ -301,7 +302,7 @@ new Vue({
 									chatData.messages = message.messages.concat(chatData.messages);
 									chatData.totalMessageCount = message.totalMessageCount;
 									// We are done loading
-									chatData.loadingNewMessages = false;
+									chatData.loadingOldMessages = false;
 									break;
 								}
 								// New user list
@@ -328,8 +329,8 @@ new Vue({
 		
 		// The button that rejoins the chat
 		buttonReconnectChat: function() {
-			// TODO: Something nicer than reload!
-			console.error('TODO: Build reconnect!');
+			// Reload the window (TODO: Make this nicer)
+			location.href = location.href;
 		},
 		
 		// The button that sends a message
@@ -350,12 +351,20 @@ new Vue({
 		// The scroll event
 		chatWindowScroll: function() {
 			var chatWindow = document.getElementById('chat-messages-scroll');
-			if (chatWindow.scrollTop < 10 && chatData.loadingNewMessages == false && chatData.totalMessageCount !== chatData.messages.length) {
+			if (chatWindow.scrollTop < 5 && chatData.loadingOldMessages == false && chatData.totalMessageCount > chatData.messages.length) {
 				// Load new messages TODO: Animate
-				chatData.loadingNewMessages = true;
-				chatData.socket.send(freech.createMessageRequest(chatData.totalMessageCount, chatData.messages.length));
+				chatData.loadingOldMessages = true;
+				chatData.socket.send(freech.createMessageRequest());
 			}
-		}
+		},
+		
+		// The share window buttons
+		buttonCloseShare: function() {
+			uiData.displayShareChatPrompt = false;
+		},
+		buttonOpenShare: function() {
+			uiData.displayShareChatPrompt = true;
+		},
 		
 	},
 });

@@ -139,10 +139,10 @@ class Chat {
         // The user wants to load existing messages
         case NetworkMessageType.USER.LOADMESSAGES: {
           // Socket message format:
-          // { type, count, offset }
+          // { type, count, lastMessageId }
           const count = dataObject.hasOwnProperty('count') && typeof dataObject.count === 'number' ? Math.floor(dataObject.count) : 0;
-          const offset = dataObject.hasOwnProperty('offset') && typeof dataObject.offset === 'number' ? Math.floor(dataObject.offset) : 0;
-          this.sendMessages(socket, count, offset);
+          const lastMessageId = dataObject.hasOwnProperty('lastMessageId') && typeof dataObject.lastMessageId === 'string' ? dataObject.lastMessageId : false;
+          this.sendMessages(socket, count, lastMessageId);
           break;
         }
         default: {
@@ -171,17 +171,18 @@ class Chat {
   * @param {number} count
   * @param {number} offset
   */
-  sendMessages(socket, count, offset) {
-    // Validate the count and the offset
-    count = count > 0 ? count : 0;
-    offset = offset < this.messages.length && offset > 0 ? offset : this.messages.length - 1;
+  sendMessages(socket, count, lastMessageId) {
+    // Get the last message index (will be excluded)
+    let lastMessageIndex = this.indexOfMessage(lastMessageId);
+    if (lastMessageIndex === -1) lastMessageIndex = this.messages.length;
+    // Count back to the wanted index
+    let startMessageIndex = count > lastMessageIndex ? 0 : lastMessageIndex - count;
     // Find the messages in the message data if some where requested
-    if (count > 0) {
+    if (startMessageIndex < lastMessageIndex) {
       // Keep a clean event loop
       setImmediate(() => {
         // Get the messages
-        const start = 1 + offset - count;
-        const messages = this.messages.slice(start > 0 ? start : 0, offset + 1);
+        const messages = this.messages.slice(startMessageIndex, lastMessageIndex);
         const totalMessageCount = this.messages.length;
         // Send the messages to the socket
         const socketResponse = {
