@@ -1,10 +1,14 @@
 'use strict';
 
 
+// Imports
+const fs = require('fs');
+
 // Constant values
 const logLevelNames = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'FATAL'];
 // 'Private' vars shared by all class instances
 let logLevel = 0;
+let logFile = '/log.log';
 
 /**
 * Log
@@ -52,7 +56,13 @@ class Log {
         entry = `[${levelName}][${time}] `.concat(entry);
         // Write the log to console
         console.log(entry);
-        // TODO: Write the log to file
+        // Write the log to file, if wanted
+        if (typeof logFile === 'string') {
+          fs.appendFile(__dirname.replace('/classes', '').concat(logFile), entry.concat('\n'), err => {
+            // Later maybe do something on error
+            if (err) console.log(`[ERROR][${time}] Failed to write log to file ${logFile}`);
+          });
+        }
       }
     }
   }
@@ -68,6 +78,33 @@ class Log {
   static setLevel(newLevel) {
     if (this.levels.hasOwnProperty(newLevel)) {
       logLevel = this.levels[newLevel];
+      return true;
+    } else if (typeof newLevel === 'number' && newLevel >= 0 && newLevel <= this.levels.FATAL) {
+      logLevel = Math.floor(newLevel);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+  * setFile() sets the
+  * path of the log file
+  * that will recive the
+  * log output.
+  * Setting the file to
+  * false disables logging
+  * to a file.
+  *
+  * @param {string / bool} newFilePath
+  * @return {bool}
+  */
+  static setFile(newFilePath) {
+    if (typeof newFilePath === 'string') {
+      logFile = newFilePath;
+      return true;
+    } else if (newFilePath === false) {
+      // Disable logging to a file
+      logFile = false;
       return true;
     }
     return false;

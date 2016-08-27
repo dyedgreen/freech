@@ -24,8 +24,8 @@ class Chat {
     this.messages = [];
     this.connections = [];
     // Schedule destructor
-    this.destructor = { timeout: null, callback: destructor };
-    this.rescheduleDestructor();
+    this.destructor = { time: null, callback: destructor };
+    this.scheduleDestructor();
     // Log about this
     Log.write(Log.INFO, 'Chat created with id', this.id);
   }
@@ -64,8 +64,8 @@ class Chat {
       });
       // Update everyones user list
       this.pushUserList();
-      // Postpone the destructor timeout
-      this.rescheduleDestructor();
+      // Send the user the current chat expiration time (will probably not change, but might in a future update)
+      this.sendChatExpirationTime(socket);
       // Log about the event
       Log.write(Log.INFO, 'User connected with id', userId);
     } else {
@@ -98,8 +98,6 @@ class Chat {
       });
       // Update everyones user list
       this.pushUserList();
-      // Postpone the destructor timeout
-      this.rescheduleDestructor();
       // Log about the event
       Log.write(Log.INFO, 'User disconncted with id', userId);
     }
@@ -202,6 +200,31 @@ class Chat {
     }
   }
 
+  sendChatExpirationTime(socket) {
+    // Keep a clean event loop
+    setImmediate(() => {
+      // Build the message
+      const socketMessage = {
+        type: NetworkMessageType.UPDATE.CHATEXPIRATION,
+        time: this.destructor.time,
+      };
+      // Send the message to the user
+      try {
+        socket.send(JSON.stringify(socketMessage));
+      } catch (e) {
+        // There was a problem
+        Log.write(Log.ERROR, 'Could not send chat expiration time to user');
+      }
+    });
+  }
+
+  /**
+  * pushNewMessage() sends a
+  * message of a given id to
+  * all connected users.
+  *
+  * @param {string} messageId
+  */
   pushNewMessage(messageId) {
     setImmediate(() => {
       // Find the message
@@ -234,6 +257,12 @@ class Chat {
     Log.write(Log.DEBUG, 'Pushing new message to all connected users');
   }
 
+  /**
+  * pushUserList() builds and
+  * sends the current list of
+  * all users to all connected
+  * clients.
+  */
   pushUserList() {
     setImmediate(() => {
       // Build the user list
@@ -394,15 +423,15 @@ class Chat {
   }
 
   /**
-  * rescheduleDestructor() postpones
+  * rescheduleDestructor() sets
   * the destructor timeout to 24h from
-  * now.
+  * now (can not be updated later!).
+  *
+  * @param {number} chatAge
   */
-  rescheduleDestructor() {
-    // Clear the existing timeout
-    clearTimeout(this.destructor.timeout);
-    // Set a new timeout
-    this.destructor.timeout = setTimeout(() => {
+  scheduleDestructor(chatAge = 86400000) {
+    // Set a new distructor timeout
+    setTimeout(() => {
       // Log about this
       Log.write(Log.DEBUG, 'Destructing chat with id', this.id);
       // Disconnect all clients
@@ -413,9 +442,11 @@ class Chat {
       setImmediate(() => {
         this.destructor.callback(this.id);
       });
-    }, 86400000); // 24 h / one day
+    }, chatAge); // 24 h / one day, if standard
+    // Store the time at which it will happen
+    this.destructor.time = Date.now() + chatAge;
     // Log about this
-    Log.write(Log.DEBUG, 'Chat destructor rescheduled for chat with id', this.id);
+    Log.write(Log.DEBUG, 'Chat destructor scheduled for chat with id / time:', this.id, '/', this.destructor.time);
   }
 
 }
