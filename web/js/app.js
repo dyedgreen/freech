@@ -3,22 +3,25 @@
 
 // Application functions
 var freech = {
-	
+
+	// Data
+
+
 	// Get the current ChatId from the url
 	urlGetChatId: function() {
 		return location.search.replace('?', '');
 	},
-	
+
 	// Test if the url has a chat id
 	urlHasChatId: function() {
 		return !!(freech.urlGetChatId().length === 128);
 	},
-	
+
 	// Set the url chat id
 	urlSetChatId: function(chatId) {
 		window.history.pushState('object or string', document.getElementsByTagName('title')[0].innerHTML, location.href.split('?')[0].concat('?').concat(chatId));
 	},
-	
+
 	// Get if user index from local list
 	indexOfUser: function(userId) {
 		for (var i = 0; i < chatData.users.length; i ++) {
@@ -28,13 +31,13 @@ var freech = {
 		}
 		return -1;
 	},
-	
+
 	// Get username for id (from local user list)
 	getUserNameFromId: function(userId) {
 		var index = freech.indexOfUser(userId);
 		return index == -1 ? '' : chatData.users[index].name;
 	},
-	
+
 	// Create a new chat
 	createNewChat: function(callback) {
 		Vue.http.get('/api/chat/new').then(function(res){
@@ -47,7 +50,7 @@ var freech = {
 			callback(false);
 		});
 	},
-	
+
 	// Create a local user
 	createUser: function(name) {
 		// Generate an id
@@ -63,7 +66,7 @@ var freech = {
 			token: '',
 		};
 	},
-	
+
 	// Register a user in a chat
 	registerUser: function(chatId, user, callback) {
 		var url = '/api/chat/join';
@@ -82,12 +85,12 @@ var freech = {
 			callback(false);
 		});
 	},
-	
+
 	// Create hash
 	createHash: function(time, user) {
 		return forge_sha256(''.concat(user.token).concat(time));
 	},
-	
+
 	// Create handshake string
 	createHandshake: function(chatId, user) {
 		var time = Date.now();
@@ -99,7 +102,7 @@ var freech = {
 			time: time,
 		});
 	},
-	
+
 	// Create message string (for sending a new message to the chat)
 	createMessage: function(user, text) {
 		var time = Date.now();
@@ -110,7 +113,7 @@ var freech = {
 			time: time,
 		});
 	},
-	
+
 	// Create message request (that will load new messages)
 	createMessageRequest: function() {
 		var request = {
@@ -120,7 +123,7 @@ var freech = {
 		};
 		return JSON.stringify(request);
 	},
-	
+
 	// Connect to socket
 	connectToSocket: function(chatId, user, connectCallback, messageCallback, closeCallback) {
 		// Create the socket and open it
@@ -136,13 +139,13 @@ var freech = {
 			});
 		});
 	},
-	
+
 	// Scroll chat to bottom (move function somewhere else)
 	scrollChat: function() {
 		var chatWindow = document.getElementById('chat-messages-scroll');
 		chatWindow.scrollTop = chatWindow.scrollHeight;
 	},
-	
+
 };
 
 
@@ -241,7 +244,7 @@ new Vue({
 		input: userInput,
 	},
 	methods: {
-		
+
 		// The button that creates a new chat
 		buttonCreateChat: function() {
 			// TODO: Display some loading
@@ -260,7 +263,7 @@ new Vue({
 				}
 			});
 		},
-		
+
 		// The button that joins the user to the chat
 		buttonJoinChat: function() {
 			// Test if the name is there
@@ -326,13 +329,13 @@ new Vue({
 				console.error('Display name format error!');
 			}
 		},
-		
+
 		// The button that rejoins the chat
 		buttonReconnectChat: function() {
 			// Reload the window (TODO: Make this nicer)
 			location.href = location.href;
 		},
-		
+
 		// The button that sends a message
 		buttonSendMessage: function() {
 			// Test the input
@@ -347,7 +350,7 @@ new Vue({
 				console.error('Display new message format error!');
 			}
 		},
-		
+
 		// The scroll event
 		chatWindowScroll: function() {
 			var chatWindow = document.getElementById('chat-messages-scroll');
@@ -357,7 +360,7 @@ new Vue({
 				chatData.socket.send(freech.createMessageRequest());
 			}
 		},
-		
+
 		// The share window buttons
 		buttonCloseShare: function() {
 			uiData.displayShareChatPrompt = false;
@@ -365,6 +368,6 @@ new Vue({
 		buttonOpenShare: function() {
 			uiData.displayShareChatPrompt = true;
 		},
-		
+
 	},
 });

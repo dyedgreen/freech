@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+	<head>
+		<!-- Meta Stuff -->
+		<meta charset="utf-8">
+		<!-- Title -->
+		<title>Freech</title>
+		<!-- Fonts & Css -->
+		<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+		<link href="./css/chat.css" rel="stylesheet" type="text/css">
+	</head>
+	
+	<!-- The App -->
+	<body>
+		<!-- The Sidebar (displaying the logged-in users) -->
+		<div class="sidebar">
+			<!-- The Header -->
+			<h1>People</h1>
+			<!-- The list with all people -->
+			<div class="scroll">
+				<div v-for="user in freechTemp.userList" class="person {{ user.id | userclass }}">
+					<span>{{ user.name }}</span>
+				</div>
+			</div>
+			<!-- The share button -->
+			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="share">Invite a friend</a>
+		</div>
+		
+		<!-- The Chat -->
+		<div class="chat">
+			<!-- Message Container -->
+			<div id="chat-messages-scroll" v-on:scroll="chatWindowScroll" class="messages">
+				
+				<!-- The loading indicator -->
+				<span class="loading" v-show="freechTemp.loadingOldMessages">Loading ...</span>
+				
+				<!-- A single message -->
+				<div v-for="message in freechTemp.messages" class="message {{ message.userId | userclass }}">
+					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
+					<p>{{ message.text }}</p>
+				</div>
+				
+			</div>
+			<!-- Send Input -->
+			<div class="compose">
+				<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="What's on your mind?">
+				<a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="send">Send</a>
+			</div>
+		</div>
+		
+		<!-- Share This Chat Modal -->
+		<div class="modal" v-if="uiData.modals.share">
+			<h1>Share this chat</h1>
+			<p>To share this chat, please invite your friends using this URL.<br><span class="url">http://localhost:8080/chat?{{ freechTemp.chatId }}</span></p>
+			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
+		</div>
+		
+		<!-- New Chat Modal -->
+		<div class="modal" v-if="uiData.modals.newChat">
+			<span class="error" v-if="uiData.errors.createNewChat">Failed to create a chat.</span>
+			<h1>New chat</h1>
+			<p>Do you want to create a new chat?</p>
+			<a href="javascript:void(0)" v-on:click="buttonNewChat" v-bind:class="{ 'loading': uiData.loading.creatingChat }" class="button">Create Chat</a>
+		</div>
+		
+		<!-- Enter Name Modal -->
+		<div class="modal" v-if="uiData.modals.newUser">
+			<span class="error" v-if="uiData.errors.createNewUser">Failed to join the chat. Have you tried <a href="/chat">creating a new one</a>?</span>
+			<span class="error" v-if="uiData.errors.createNewUserInput">You need to enter a name.</span>
+			<h1>Your name</h1>
+			<p>Please enter your name.</p>
+			<input type="text" v-model="input.newUserName" v-on:keyup.enter="buttonCreateUser" v-bind:class="{ 'loading': uiData.loading.creatingUser }" placeholder="What's your name?">
+			<a href="javascript:void(0)" v-on:click="buttonCreateUser" class="button">Join Chat</a>
+		</div>
+		
+		<!-- Connection Lost Modal -->
+		<div class="modal error" v-if="uiData.modals.disconnect">
+			<h1>Connection lost</h1>
+			<p>Do you want to reconnect?</p>
+			<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button">Reconnect</a>
+		</div>
+		
+		<!-- Full Loading TODO: Make this nicer -->
+		<div class="full-loading" v-if="uiData.loading.full">
+			Loading ...
+		</div>
+		
+		<!-- Scripts -->
+		<script src="./js/libs.js"></script>
+		<script src="./js/chat.js"></script>
+	</body>
+	
+</html>

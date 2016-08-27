@@ -200,13 +200,21 @@ class Chat {
     }
   }
 
+  /**
+  * sendChatExpirationTime()
+  * forwards the current
+  * chat expiration time
+  * to a given socket.
+  *
+  * @param {socket} socket
+  */
   sendChatExpirationTime(socket) {
     // Keep a clean event loop
     setImmediate(() => {
       // Build the message
       const socketMessage = {
         type: NetworkMessageType.UPDATE.CHATEXPIRATION,
-        time: this.destructor.time,
+        expirationTime: this.destructor.time,
       };
       // Send the message to the user
       try {
@@ -279,7 +287,7 @@ class Chat {
       try {
         const socketMessage = {
           type: NetworkMessageType.UPDATE.USERLIST,
-          users: userList,
+          userList,
         };
         const socketMessageString = JSON.stringify(socketMessage);
         this.connections.forEach(conn => {

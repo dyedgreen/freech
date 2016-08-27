@@ -130,10 +130,15 @@ class ChatServer {
   handleFile(req, res) {
     // Construct file path, considering special files
     let path = this.fileDir.concat(req.url.split('?')[0]);
-    switch (req.url) {
+    switch (req.url.split('?')[0]) {
       // Index file (index.html)
       case '/': {
         path = path.concat('index.html');
+        break;
+      }
+      // Chat web-app
+      case '/chat' : {
+        path = path.concat('.html');
         break;
       }
       default: {

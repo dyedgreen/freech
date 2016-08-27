@@ -69,7 +69,6 @@ html {
 
 	color:#2EC4B6;
 	background:none;
-	box-shadow:0 -50px 25px 0 #011627;
 
 	transition:.1s;
 	cursor:pointer;
@@ -390,6 +389,26 @@ html {
 	background:#3D348B;
 }
 
+/* CHAT LOADING */
+
+.chat .loading {
+	width:100%;
+	height:auto;
+	display:block;
+	margin:0 0 25px 0;
+	
+	font-size:20px;
+	font-weight:600;
+	line-height:50px;
+	text-decoration:none;
+	text-align:center;
+	text-transform:capitalize;
+
+	color:rgba(0,0,0,0.5);
+	
+	pointer-events:none;
+}
+
 
 /* MODALS */
 
@@ -398,7 +417,7 @@ html {
 	max-width:90%;
 	height:auto;
 	max-height:90%;
-	padding:25px;
+	padding:0 25px 25px 25px;
 	display:block;
 	position:absolute;
 	top:50%; right:auto; bottom:auto; left:50%;
@@ -418,6 +437,7 @@ html {
 	width:100%;
 	height:auto;
 	display:block;
+	margin:25px 0 0 0;
 
 	font-size:25px;
 	font-weight:600;
@@ -431,6 +451,7 @@ html {
 	width:100%;
 	height:auto;
 	display:block;
+	margin:15px 0 0 0;
 
 	font-size:18px;
 	font-weight:400;
@@ -444,7 +465,7 @@ html {
 	height:50px;
 	padding:0 15px;
 	display:block;
-	margin:10px 0;
+	margin:25px 0;
 
 	font-size:20px;
 	font-weight:600;
@@ -458,6 +479,27 @@ html {
 	white-space:nowrap;
 	overflow:hidden;
 	overflow-x:scroll;
+}
+.modal .error {
+	width:100%;
+	height:auto;
+	box-sizing:content-box;
+	padding:25px;
+	display:block;
+	margin:0 -25px 0 -25px;
+	
+	font-size:18px;
+	font-weight:600;
+	line-height:20px;
+	text-align:left;
+
+	color:#fff;
+	background:#E71D36;
+}
+.modal .error a {
+	text-decoration:underline;
+
+	color:#fff;
 }
 .modal input[type=text] {
 	width:100%;
@@ -502,6 +544,7 @@ html {
 	height:50px;
 	padding:0 25px;
 	display:block;
+	position:relative;
 	margin:25px 0 0 0;
 
 	font-size:20px;
@@ -525,6 +568,31 @@ html {
 	background:#2EC4B6;
 }
 
+.modal .button.loading {
+	pointer-events:none;
+}
+.modal .button.loading:before {
+	/* TODO: Make this nicer */
+	height:100%;
+	width:100%;
+	display:block;
+	position:absolute;
+	top:0; right:0; bottom:0; left:0;
+	
+	font-size:20px;
+	font-weight:600;
+	line-height:50px;
+	text-decoration:none;
+	text-align:center;
+	text-transform:capitalize;
+
+	color:rgba(0,0,0,0.5);
+	background:#EEEFED;
+	border-radius:10px;
+	
+	content:"Loading ...";
+}
+
 .modal.error {
 	color:#E71D36;
 }
@@ -536,4 +604,21 @@ html {
 .modal.error .button:hover {
 	color:#fff;
 	background:#FF9F1C;
+}
+
+.full-loading {
+	width:100vw;
+	height:100vh;
+	display:block;
+	position:fixed;
+	top:0; right:0; bottom:0; left:0;
+	
+	font-size:25px;
+	font-weight:600;
+	line-height:100vh;
+	text-align:center;
+	text-transform:capitalize;
+
+	color:rgba(0,0,0,0.5);
+	background:#EEEFED;
 }
