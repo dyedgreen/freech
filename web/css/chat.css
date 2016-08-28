@@ -20,7 +20,6 @@ html {
 	background:#EEEFED;
 }
 
-
 /* SIDEBAR */
 
 .sidebar {
@@ -201,7 +200,6 @@ html {
 	background:#3D348B;
 }
 
-
 /* CHAT */
 
 .chat {
@@ -346,6 +344,7 @@ html {
 	font-weight:500;
 	line-height:22px;
 	text-align:left;
+	word-break:break-all;
 
 	background:rgba(0,0,0,0.2);
 	color:#011627;
@@ -356,52 +355,52 @@ html {
 	text-align:left;
 }
 
-.chat .messages .message.notme.blue > span {
+.chat .messages .message.blue > span {
 	color:#359AFF;
 }
-.chat .messages .message.notme.blue > p {
+.chat .messages .message.blue > p {
 	color:#fff;
 	background:#359AFF;
 }
-.chat .messages .message.notme.pink > span {
+.chat .messages .message.pink > span {
 	color:#F92C89;
 }
-.chat .messages .message.notme.pink > p {
+.chat .messages .message.pink > p {
 	color:#fff;
 	background:#F92C89;
 }
-.chat .messages .message.notme.green > span {
+.chat .messages .message.green > span {
 	color:#2EC4B6;
 }
-.chat .messages .message.notme.green > p {
+.chat .messages .message.green > p {
 	color:#fff;
 	background:#2EC4B6;
 }
-.chat .messages .message.notme.red > span {
+.chat .messages .message.red > span {
 	color:#E71D36;
 }
-.chat .messages .message.notme.red > p {
+.chat .messages .message.red > p {
 	color:#fff;
 	background:#E71D36;
 }
-.chat .messages .message.notme.yellow > span {
+.chat .messages .message.yellow > span {
 	color:#FF9F1C;
 }
-.chat .messages .message.notme.yellow > p {
+.chat .messages .message.yellow > p {
 	color:#fff;
 	background:#FF9F1C;
 }
-.chat .messages .message.notme.orange > span {
+.chat .messages .message.orange > span {
 	color:#F45D01;
 }
-.chat .messages .message.notme.orange > p {
+.chat .messages .message.orange > p {
 	color:#fff;
 	background:#F45D01;
 }
-.chat .messages .message.notme.purple > span {
+.chat .messages .message.purple > span {
 	color:#3D348B;
 }
-.chat .messages .message.notme.purple > p {
+.chat .messages .message.purple > p {
 	color:#fff;
 	background:#3D348B;
 }
@@ -425,7 +424,6 @@ html {
 	
 	pointer-events:none;
 }
-
 
 /* MODALS */
 
@@ -623,6 +621,33 @@ html {
 	background:#FF9F1C;
 }
 
+.modal .social {
+	width:100%;
+	height:auto;
+	display:block;
+	margin:25px 0 0 0;
+	
+	border-radius:10px;
+	
+	overflow:hidden;
+}
+.modal .social .button {
+	margin:0;
+	
+	border-radius:0;
+	box-shadow:inset 0 50px 0 0 #fff;
+	
+	transition:box-shadow 0;
+}
+.modal .social .button:active,
+.modal .social .button:focus,
+.modal .social .button:hover {
+	color:#fff!Important;
+	box-shadow:none;
+}
+
+/* PAGE LOADING INDICATOR */
+
 .full-loading {
 	width:100vw;
 	height:100vh;
@@ -638,4 +663,41 @@ html {
 
 	color:rgba(0,0,0,0.5);
 	background:#EEEFED;
+}
+
+/* SMALL SCREENS */
+
+@media (max-width: 600px) {
+	/* SIDEBAR */
+	.sidebar {
+		width:auto;
+		height:75px;
+		padding:0;
+		top:25px; right:25px; bottom:auto; left:25px;
+		
+		border-radius:10px 10px 0 0;
+	}
+	.sidebar h1 {
+		display:none;
+	}
+	.sidebar .warning {
+		padding:12px 25px;
+	}
+	.sidebar .share {
+		width:100%;
+		height:75px;
+		padding:0 25px;
+		display:inline-block;
+		position:relative;
+		
+		text-align:center;
+		line-height:75px;
+	}
+	.sidebar .scroll {
+		display:none;
+	}
+	/* CHAT */
+	.chat {
+		top:100px; right:25px; bottom:25px; left:25px;
+	}
 }

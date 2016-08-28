@@ -4,6 +4,7 @@
 	<head>
 		<!-- Meta Stuff -->
 		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1, maximum-scale=1">
 		<!-- Title -->
 		<title>Freech</title>
 		<!-- Fonts & Css -->
@@ -15,8 +16,6 @@
 	<body>
 		<!-- The Sidebar (displaying the logged-in users) -->
 		<div class="sidebar">
-			<!-- The Expiration Notice -->
-			<span class="warning" v-if="freechTemp.expirationTimeLeft < 3600000">This chat will expire in {{ Math.floor(freechTemp.expirationTimeLeft / 60000) }} minutes.</span>
 			<!-- The Header -->
 			<h1>People</h1>
 			<!-- The list with all people -->
@@ -27,6 +26,8 @@
 			</div>
 			<!-- The share button -->
 			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="share">Invite a friend</a>
+			<!-- The Expiration Notice -->
+			<span class="warning" v-if="freechTemp.expirationTimeLeft < 3600000">This chat will expire in {{ Math.floor(freechTemp.expirationTimeLeft / 60000) }} minutes.</span>
 		</div>
 		
 		<!-- The Chat -->
@@ -58,7 +59,19 @@
 		<!-- Share This Chat Modal -->
 		<div class="modal" v-if="uiData.modals.share">
 			<h1>Share this chat</h1>
-			<p>To share this chat, please invite your friends using this URL.<br><span class="url">http://localhost:8080/chat?{{ freechTemp.chatId }}</span></p>
+			<p>To share this chat, please invite your friends using this URL.</p>
+			<!-- URL -->
+			<span class="url">http://localhost:8080/chat?{{ freechTemp.chatId }}</span>
+			<!-- Social buttons -->
+			<span class="social">
+				<!-- Email -->
+				<a href="mailto:?&subject=Join my chat on freech&body=http%3A//localhost%3A8080/chat?{{ freechTemp.chatId }}" target="_blank" class="button" style="color:#011627;background:#011627">EMail</a>
+				<!-- Twitter -->
+				<a href="https://twitter.com/intent/tweet?url=http%3A//localhost%3A8080/chat?{{ freechTemp.chatId }}" target="_blank" class="button" style="color:#1da1f2;background:#1da1f2">Twitter</a>
+				<!-- Facebook -->
+				<a href="https://www.facebook.com/sharer/sharer.php?u=http%3A//localhost%3A8080/chat?{{ freechTemp.chatId }}" target="_blank" class="button" style="color:#365899;background:#365899">Facebook</a>
+			</span>
+			<!-- Close -->
 			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
 		</div>
 		
