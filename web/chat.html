@@ -15,6 +15,8 @@
 	<body>
 		<!-- The Sidebar (displaying the logged-in users) -->
 		<div class="sidebar">
+			<!-- The Expiration Notice -->
+			<span class="warning" v-if="freechTemp.expirationTimeLeft < 3600000">This chat will expire in {{ Math.floor(freechTemp.expirationTimeLeft / 60000) }} minutes.</span>
 			<!-- The Header -->
 			<h1>People</h1>
 			<!-- The list with all people -->
@@ -30,15 +32,19 @@
 		<!-- The Chat -->
 		<div class="chat">
 			<!-- Message Container -->
-			<div id="chat-messages-scroll" v-on:scroll="chatWindowScroll" class="messages">
+			<div id="chat-messages-scroll" v-on:scroll="scrollChat" class="messages">
 				
 				<!-- The loading indicator -->
-				<span class="loading" v-show="freechTemp.loadingOldMessages">Loading ...</span>
+				<span class="loading" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
+				<!-- The no messages indicator -->
+				<span class="loading" v-if="freechTemp.totalMessageCount === -1">No messages</span>
 				
 				<!-- A single message -->
 				<div v-for="message in freechTemp.messages" class="message {{ message.userId | userclass }}">
 					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
-					<p>{{ message.text }}</p>
+					<p v-if="message.text !== 'nogodsnomasters'">{{ message.text }}</p>
+					<!-- Simple Easter Egg -->
+					<img src="./images/no_gods-no_masters.png" v-if="message.text === 'nogodsnomasters'" style="width:350px;max-width:90%;height:auto;display:inline-block;border-radius:10px;">
 				</div>
 				
 			</div>
@@ -76,9 +82,18 @@
 		
 		<!-- Connection Lost Modal -->
 		<div class="modal error" v-if="uiData.modals.disconnect">
-			<h1>Connection lost</h1>
-			<p>Do you want to reconnect?</p>
-			<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button">Reconnect</a>
+			<!-- Lost connection -->
+			<span v-if="freechTemp.expirationTimeLeft > 0">
+				<h1>Connection lost</h1>
+				<p>Do you want to reconnect?</p>
+				<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button">Reconnect</a>
+			</span>
+			<!-- Lost connection & chat is expired -->
+			<span v-else>
+				<h1>The chat expired</h1>
+				<p>You can always create a new chat.</p>
+				<a href="/chat" class="button">New Chat</a>
+			</span>
 		</div>
 		
 		<!-- Full Loading TODO: Make this nicer -->

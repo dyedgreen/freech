@@ -17,6 +17,7 @@ var freech = {
     expirationTimeLeft: 86400000,
     userList: [],
     messages: [],
+    totalMessageCount: -1,
     loadingOldMessages: false,
     socket: null,
     connected: false,
@@ -31,7 +32,7 @@ var freech = {
         freech.data = JSON.parse(dataStored);
         // Clean all old useres
         var newExpirationTimes = [];
-        data.expirationTimes.forEach(function(expirationData, index) {
+        freech.data.expirationTimes.forEach(function(expirationData, index) {
           if (expirationData.time < Date.now()) {
             // Delete the old user data
             delete freech.data.users[expirationData.chatId];
@@ -40,7 +41,7 @@ var freech = {
             newExpirationTimes.push(expirationData);
           }
         });
-        freech.data.expirationData = newExpirationData;
+        freech.data.expirationTimes = newExpirationTimes;
         return true;
       } catch (e) {}
     }
@@ -217,8 +218,9 @@ var freech = {
       socket.on('open', function() {
         // Register the callbacks
         socket.on('close', function() {
-          // Mark the connection as closed and hit the callback
+          // Mark the connection as closed, update the expiration time and hit the callback
           freech.tempData.connected = false;
+          freech.dataUpdateExpirationTime();
           callbackClose();
         });
         socket.on('message', function(data) {
@@ -228,8 +230,9 @@ var freech = {
             switch (dataObj.type) {
               // New messages was pushed by the server (WILL CALL UI_UPDATE CALLBACK)
               case 10: {
-                // Store the message
+                // Store the message & the new total message count
                 freech.tempData.messages.push(dataObj.message);
+                freech.tempData.totalMessageCount = dataObj.totalMessageCount;
                 callbackNewMessage();
                 break;
               }
@@ -242,12 +245,15 @@ var freech = {
               // The chat expiration data was recived
               case 13: {
                 // Store the chat expiration
-                freech.tempData.expirationTime = messageObj.expirationTime;
+                freech.tempData.expirationTime = dataObj.expirationTime;
                 // Add an expiration element to the local data & store it
-                freech.data.expirationTimes.push({ time: messageObj.expirationTime, chatId: freech.tempData.chatId });
+                freech.data.expirationTimes.push({ time: dataObj.expirationTime, chatId: freech.tempData.chatId });
                 freech.dataStore();
-                // Update the countdown requraly from now on (THAT FUNCTION SHOULD ONLY BE CALLED ONCE!)
+                // Update the countdown requraly from now on
                 freech.dataUpdateExpirationTime();
+                setInterval(function() {
+                  freech.dataUpdateExpirationTime();
+                }, 60000);
                 break;
               }
               // The loaded old messages where recived
@@ -256,8 +262,9 @@ var freech = {
                 if (freech.tempData.messages.length === 0) {
                   setTimeout(callbackNewMessage, 20);
                 }
-                // Store the old messages
+                // Store the old messages & the total message count
                 freech.tempData.messages = dataObj.messages.concat(freech.tempData.messages);
+                freech.tempData.totalMessageCount = dataObj.totalMessageCount;
                 // Set the old-messages loading to done (if there are more messages to be loaded)
                 if (dataObj.totalMessageCount >= freech.tempData.messages.length) freech.tempData.loadingOldMessages = false;
                 break;
@@ -301,11 +308,7 @@ var freech = {
 
   // Application runtime / data-update functions
   dataUpdateExpirationTime: function() {
-    // Only call this ONCE!
-    setTimeout(function() {
-      freech.tempData.expirationTimeLeft = typeof freech.tempData.expirationTime === 'number' ? freech.tempData.expirationTime - Date.now() : 86400000;
-      freech.dataUpdateExpirationTime();
-    }, 60000);
+    freech.tempData.expirationTimeLeft = typeof freech.tempData.expirationTime === 'number' ? freech.tempData.expirationTime - Date.now() : 86400000;
   },
 
 };

@@ -147,7 +147,9 @@ class ChatManager {
   */
   createChat() {
     // Create the chat
-    const newChat = new Chat(this.destructChat);
+    const newChat = new Chat(chatId => {
+      this.destructChat(chatId);
+    });
     this.chats.push(newChat);
     return newChat.id;
   }
