@@ -43,7 +43,7 @@
 				<!-- A single message -->
 				<div v-for="message in freechTemp.messages" class="message {{ message.userId | userclass }}">
 					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
-					<p v-if="message.text !== 'nogodsnomasters'">{{ message.text }}</p>
+					<p v-if="message.text !== 'nogodsnomasters'">{{{ message.text | message }}}</p>
 					<!-- Simple Easter Egg -->
 					<img src="./images/no_gods-no_masters.png" v-if="message.text === 'nogodsnomasters'" style="width:350px;max-width:90%;height:auto;display:inline-block;border-radius:10px;">
 				</div>

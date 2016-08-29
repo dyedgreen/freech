@@ -496,6 +496,46 @@ Vue.filter('username', function(value) {
   var username = freech.getNameOfUser(value);
   return username !== '' ? username : value;
 });
+// Message filter, turns a message into safe HTML + inserts linebreaks
+Vue.filter('message', function(value) {
+  // Encode html chars (prevent XSS)
+  value = ''.concat(value).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Insert linebreaks and hyperlinks
+  var smallChars = 'fijlrtI1!';
+  var valueArray = [];
+  value.split(' ').forEach(function(word) {
+    // Test if word is a (valid) URL
+    if (/^(https?:\/\/)?([^\s\@\.]+\.)?[^\s\@]+\.[^\d\s\@\/\.]+(\/[^\s]*)?$/i.test(word)) {
+      var url = ''.concat(word);
+      // Work out if protocol is in url
+      if (!/^https?:\/\//i.test(url)) url = 'http://'.concat(url);
+      // Remove any punctuation at the end
+      if (/[\.\,\;\:\-\–\…\?\!\/\(\)]$/i.test(url)) url = url.substr(0, url.length - 1);
+      // Add the url to the array
+      valueArray.push('<a href="'.concat(url).concat('" target="_blank" rel="noopener">'));
+      valueArray.push(word);
+      valueArray.push('</a>');
+    } else {
+      valueArray.push(word);
+    }
+  });
+  valueArray.forEach(function(word, index) {
+    // Rate the word (if no html)
+    if (word.indexOf('<') === -1) {
+      var score = 0;
+      word.split('').forEach(function(char) {
+        if (smallChars.indexOf(char) !== -1) {
+          score ++;
+        } else {
+          score += 2;
+        }
+      });
+      // If the rating exeeds 30, make it breakable!
+      if (score >= 30) valueArray[index] = word.split('').join('<wbr>');
+    }
+  });
+  return valueArray.join(' ');
+});
 
 
 // The Vue-JS instance
