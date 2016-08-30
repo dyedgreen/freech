@@ -25,7 +25,8 @@ var freech = {
 
   // Function that loads the current data (for useres & expiration times)
   dataLoad: function() {
-    var dataStored = localStorage.getItem('freechData');
+    // Note about localStorageSafe: If localStorage is not implemented / has no length, this will use cookies instead
+    var dataStored = localStorageSafe.getItem('freechData');
     if (typeof dataStored === 'string') {
       try {
         // Decode and load the data
@@ -51,7 +52,7 @@ var freech = {
   // Function that stores the current data
   dataStore: function() {
     try {
-      localStorage.setItem('freechData', JSON.stringify(freech.data));
+      localStorageSafe.setItem('freechData', JSON.stringify(freech.data));
       return true;
     } catch (e) {}
     return false;
@@ -335,6 +336,9 @@ var ui = {
       creatingChat: false,
       creatingUser: false,
     },
+    content: {
+      shareUrl: '',
+    }
   },
 
   // User input data
@@ -406,8 +410,9 @@ var ui = {
     location.href = location.href;
   },
 
-  // Events that open / close the share modal window
+  // Events that open / close the share modal window (This also updates the share url)
   eventButtonToggleShare: function() {
+    ui.data.content.shareUrl = encodeURI(location.href);
     ui.data.modals.share = !ui.data.modals.share;
   },
 

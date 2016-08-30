@@ -61,15 +61,15 @@
 			<h1>Share this chat</h1>
 			<p>To share this chat, please invite your friends using this URL.</p>
 			<!-- URL -->
-			<span class="url">http://localhost:8080/chat?{{ freechTemp.chatId }}</span>
+			<span class="url">{{ uiData.content.shareUrl }}</span>
 			<!-- Social buttons -->
 			<span class="social">
 				<!-- Email -->
-				<a href="mailto:?&subject=Join my chat on freech&body=http%3A//localhost%3A8080/chat?{{ freechTemp.chatId }}" target="_blank" class="button" style="color:#011627;background:#011627">EMail</a>
+				<a href="mailto:?&subject=Join my chat on freech&body={{ uiData.content.shareUrl }}" target="_blank" class="button" style="color:#011627;background:#011627">EMail</a>
 				<!-- Twitter -->
-				<a href="https://twitter.com/intent/tweet?url=http%3A//localhost%3A8080/chat?{{ freechTemp.chatId }}" target="_blank" class="button" style="color:#1da1f2;background:#1da1f2">Twitter</a>
+				<a href="https://twitter.com/intent/tweet?url={{ uiData.content.shareUrl }}" target="_blank" class="button" style="color:#1da1f2;background:#1da1f2">Twitter</a>
 				<!-- Facebook -->
-				<a href="https://www.facebook.com/sharer/sharer.php?u=http%3A//localhost%3A8080/chat?{{ freechTemp.chatId }}" target="_blank" class="button" style="color:#365899;background:#365899">Facebook</a>
+				<a href="https://www.facebook.com/sharer/sharer.php?u={{ uiData.content.shareUrl }}" target="_blank" class="button" style="color:#365899;background:#365899">Facebook</a>
 			</span>
 			<!-- Close -->
 			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
@@ -89,8 +89,8 @@
 			<span class="error" v-if="uiData.errors.createNewUserInput">You need to enter a name.</span>
 			<h1>Your name</h1>
 			<p>Please enter your name.</p>
-			<input type="text" v-model="input.newUserName" v-on:keyup.enter="buttonCreateUser" v-bind:class="{ 'loading': uiData.loading.creatingUser }" placeholder="What's your name?">
-			<a href="javascript:void(0)" v-on:click="buttonCreateUser" class="button">Join Chat</a>
+			<input type="text" v-model="input.newUserName" v-on:keyup.enter="buttonCreateUser" placeholder="What's your name?">
+			<a href="javascript:void(0)" v-on:click="buttonCreateUser" v-bind:class="{ 'loading': uiData.loading.creatingUser }" class="button">Join Chat</a>
 		</div>
 		
 		<!-- Connection Lost Modal -->

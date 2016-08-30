@@ -47,7 +47,7 @@ class Chat {
     // Test if the user is valid
     if (
       userIndex !== -1 && // User is registered
-      this.indexOfConnectedUser(userId) === -1 && // User is not already connected
+      this.indexOfConnectedUser(userId) === -1 && // User is not already connected FIXME: Timeout on 'real' server could cause reconnection problems
       this.users[userIndex].testHash(tokenHash, time) // The supplied token hash was valid
     ) {
       // Add this to the connections
