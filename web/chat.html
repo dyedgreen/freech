@@ -42,18 +42,37 @@
 				
 				<!-- A single message -->
 				<div v-for="message in freechTemp.messages" class="message {{ message.userId | userclass }}">
+					<!-- Sender & Timestamp -->
 					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
-					<p v-if="message.text !== 'nogodsnomasters'">{{{ message.text | message }}}</p>
+					<!-- Message text -->
+					<p v-if="message.text && message.text !== 'nogodsnomasters'">{{{ message.text | message }}}</p>
+					<!-- Spacing -->
+					<span v-if="message.text && message.image && message.text !== 'nogodsnomasters'" style="display:block"></span>
+					<!-- Attached image -->
+					<img v-if="message.image && message.text !== 'nogodsnomasters'" v-bind:src="message.image">
 					<!-- Simple Easter Egg -->
-					<img src="./images/no_gods-no_masters.png" v-if="message.text === 'nogodsnomasters'" style="width:350px;max-width:90%;height:auto;display:inline-block;border-radius:10px;">
+					<img v-if="message.text === 'nogodsnomasters'" v-bind:src="'./images/no_gods-no_masters.png'">
 				</div>
 				
 			</div>
 			<!-- Send Input -->
-			<div class="compose">
+			<div class="compose" v-bind:class="{ 'sending': uiData.loading.sendingNewMessage }">
 				<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="What's on your mind?">
+				<label class="attach" for="image"></label>
+				<input id="image" name="image" type="file" accept="image/*" onchange="ui.updateImageUpload(this)">
 				<a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="send">Send</a>
 			</div>
+		</div>
+		
+		<!-- Send Image Modal -->
+		<div class="modal" v-if="input.newImage != ''">
+			<!-- Image preview -->
+			<img v-bind:src="input.newImage">
+			<!-- Add a comment -->
+			<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="Add a comment.">
+			<!-- Send And Cancel -->
+			<a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="button" v-bind:class="{ 'loading': uiData.loading.sendingNewMessage }">Send Image</a>
+			<a href="javascript:void(0)" v-show="!uiData.loading.sendingNewMessage" v-on:click="buttonCancelImage" class="button cancel">Cancel</a>
 		</div>
 		
 		<!-- Share This Chat Modal -->
@@ -99,13 +118,13 @@
 			<span v-if="freechTemp.expirationTimeLeft > 0">
 				<h1>Connection lost</h1>
 				<p>Do you want to reconnect?</p>
-				<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button">Reconnect</a>
+				<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button cancel">Reconnect</a>
 			</span>
 			<!-- Lost connection & chat is expired -->
 			<span v-else>
 				<h1>The chat expired</h1>
 				<p>You can always create a new chat.</p>
-				<a href="/chat" class="button">New Chat</a>
+				<a href="/chat" class="button error">New Chat</a>
 			</span>
 		</div>
 		

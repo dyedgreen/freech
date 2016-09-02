@@ -182,13 +182,14 @@ var freech = {
     }
     return false;
   },
-  socketMessageNewMessage: function(text) {
+  socketMessageNewMessage: function(text, image) {
     if (freech.chatExists() && freech.chatUserExists()) {
       try {
         var time = Date.now();
         return JSON.stringify({
           type: 1,
           messageText: ''.concat(text),
+          messageImage: ''.concat(image),
           hash: freech.socketMessageHash(freech.data.users[freech.tempData.chatId].token, time),
           time: time,
         });
@@ -289,12 +290,15 @@ var freech = {
       callbackClose();
     }
   },
-  socketSendMessage: function(text) {
-    var socketMessage = freech.socketMessageNewMessage(text);
+  socketSendMessage: function(text, image, callback) {
+    var socketMessage = freech.socketMessageNewMessage(text, image);
     if (socketMessage && freech.tempData.connected) {
-      freech.tempData.socket.send(socketMessage);
+      freech.tempData.socket.send(socketMessage, function(){
+        callback(true);
+      });
       return true;
     }
+    callback(false);
     return false;
   },
   socketLoadOldMessages: function() {
@@ -335,6 +339,7 @@ var ui = {
       full: true, /* the only initially true value */
       creatingChat: false,
       creatingUser: false,
+      sendingNewMessage: false,
     },
     content: {
       shareUrl: '',
@@ -345,6 +350,7 @@ var ui = {
   input: {
     newUserName: '',
     newMessage: '',
+    newImage: '',
   },
 
   // Scrolls the chat to the correct place when a new message is recived
@@ -353,6 +359,19 @@ var ui = {
       var chatWindow = document.getElementById('chat-messages-scroll');
       chatWindow.scrollTop = chatWindow.scrollHeight;
     }, 20);
+  },
+
+  // Updates the image upload data
+  updateImageUpload: function(inputElement) {
+    if (inputElement && inputElement.files && inputElement.files.length >= 1) {
+      // Read the image data
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        ui.input.newImage = e.target.result;
+        inputElement.value = null;
+      };
+      reader.readAsDataURL(inputElement.files[0]);
+    }
   },
 
   // Event that creates a new chat
@@ -419,12 +438,27 @@ var ui = {
   // Event that sends a new message
   eventButtonSendNewMessage: function() {
     // TODO: Error messages for invalid input
-    if (ui.input.newMessage.length > 0) {
-      if (freech.socketSendMessage(ui.input.newMessage)) {
-        ui.input.newMessage = '';
-      }
-      // TODO: Display an error on fail
+    if (ui.input.newMessage.length + ui.input.newImage.length > 0) {
+      // Display loading
+      ui.data.loading.sendingNewMessage = true;
+      // Send message
+      freech.socketSendMessage(ui.input.newMessage, ui.input.newImage, function(success) {
+        // Hide loading
+        ui.data.loading.sendingNewMessage = false;
+        if (success) {
+          ui.input.newImage = '';
+          ui.input.newMessage = '';
+        } else {
+          // TODO: Display an error on fail
+        }
+      });
     }
+  },
+
+  // Events that cancels an image send
+  eventButtonCancelImage: function() {
+    // Clear the image input
+    ui.input.newImage = '';
   },
 
   // Event that is executed on scroll in the chat messages-view
@@ -560,6 +594,8 @@ new Vue({
     buttonReconnect: ui.eventButtonReconnect,
     buttonToggleShare: ui.eventButtonToggleShare,
     buttonSendNewMessage: ui.eventButtonSendNewMessage,
+    buttonSendImage: ui.eventButtonSendImage,
+    buttonCancelImage: ui.eventButtonCancelImage,
     scrollChat: ui.eventScrollChat,
   },
 });

@@ -1,6 +1,7 @@
 'use strict';
 
 
+// Imports
 const Log = require('./Log.js');
 const RandString = require('./RandString.js');
 const User = require('./User.js');
@@ -125,13 +126,14 @@ class Chat {
         // The user wants to send a new message
         case NetworkMessageType.USER.MESSAGE: {
           // Socket message format:
-          // { type, time, hash, messageText }
+          // { type, time, hash, messageText, messageImage }
           if (
             dataObject.hasOwnProperty('time') &&
             dataObject.hasOwnProperty('hash') &&
-            dataObject.hasOwnProperty('messageText')
+            dataObject.hasOwnProperty('messageText') &&
+            dataObject.hasOwnProperty('messageImage')
           ) {
-            this.addMessage(dataObject.messageText, userId, dataObject.hash, dataObject.time);
+            this.addMessage(dataObject.messageText, dataObject.messageImage, userId, dataObject.hash, dataObject.time);
           }
           break;
         }
@@ -323,20 +325,22 @@ class Chat {
   * @param {number} time the time the message was created (and the token was hashed)
   * @return {bool}
   */
-  addMessage(messageText, userId, tokenHash, time) {
+  addMessage(messageText, messageImage, userId, tokenHash, time) {
     // Validate the inputs
     const userIndex = this.indexOfUser(userId);
     if (
       userIndex !== -1 &&
       typeof messageText === 'string' &&
-      messageText.length > 0 &&
+      typeof messageImage === 'string' &&
+      messageText.length + messageImage.length > 0 && // Either an image or a text or both
       this.users[userIndex].testHash(tokenHash, time)
     ) {
       // The Message seems valid, add it
       const id = RandString.short;
       this.messages.push({
         id,
-        text: messageText.substr(0, 2000), // Current message length limit, be sure to warn on client side!
+        text: messageText.length > 0 ? messageText.substr(0, 2000) : false, // Current message length limit, be sure to warn on client side!
+        image: messageImage.length > 0 ? messageImage : false,
         userId: userId,
         time: time,
       });
