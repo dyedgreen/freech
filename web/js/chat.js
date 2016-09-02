@@ -510,7 +510,7 @@ Vue.filter('message', function(value) {
   var valueArray = [];
   value.split(' ').forEach(function(word) {
     // Test if word is a (valid) URL
-    if (/^(https?:\/\/)?([^\s\@\.]+\.)?[^\s\@]+\.[^\d\s\@\/\.]+(\/[^\s]*)?$/i.test(word)) {
+    if (/^(https?:\/\/)?([^\s\@\.]+\.)?[^\s\@\.]+\.[^\d\s\@\/\.]+(\/[^\s]*)?$/i.test(word)) {
       var url = ''.concat(word);
       // Work out if protocol is in url
       if (!/^https?:\/\//i.test(url)) url = 'http://'.concat(url);

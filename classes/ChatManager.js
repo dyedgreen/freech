@@ -34,7 +34,10 @@ class ChatManager {
   */
   open(httpServer) {
     // Attach to the server
-    this.server = engine.attach(httpServer);
+    this.server = engine.attach(httpServer, {
+      // Set the ping/pong timeout to 20 seconds
+      pingTimeout: 20000,
+    });
     // Handle connection events
     this.server.on('connection', socket => {
       socket.once('message', data => {
