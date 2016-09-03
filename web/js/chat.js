@@ -58,6 +58,54 @@ var freech = {
     return false;
   },
 
+  // Function that downscales an image
+  imageScale: function(dataURI, callback) {
+    try {
+      // Create the image resources
+      var maxHeight = 550;
+      var maxWidth = 350;
+      var height = 0;
+      var width = 0;
+      var img = document.createElement('img');
+
+      // Do everything else after image has loaded
+      img.onload = function() {
+        // Work out the size
+        if (img.width > img.height) {
+          if (img.width > maxWidth) {
+            width = maxWidth;
+            height = (maxWidth / img.width) * img.height;
+          } else {
+            width = img.width;
+            height = img.height;
+          }
+        } else {
+          if (img.height > maxHeight) {
+            width = (maxHeight / img.height) * img.width;
+            height = maxHeight;
+          } else {
+            width = img.width;
+            height = img.height;
+          }
+        }
+
+        // Process the image using the canvas
+        var canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Return the result to the callback
+        callback(canvas.toDataURL('image/png'));
+      };
+      img.src = ''.concat(dataURI);
+    } catch(e) {
+      // Error
+      callback('');
+    }
+  },
+
   // Url state / chat id
   urlGetChatId: function() {
     return location.search.replace('?', '');
@@ -367,8 +415,11 @@ var ui = {
       // Read the image data
       var reader = new FileReader();
       reader.onload = function(e) {
-        ui.input.newImage = e.target.result;
-        inputElement.value = null;
+        // Load the downscaled image
+        freech.imageScale(e.target.result, function(dataURI) {
+          ui.input.newImage = dataURI;
+          inputElement.value = null;
+        });
       };
       reader.readAsDataURL(inputElement.files[0]);
     }
@@ -438,7 +489,7 @@ var ui = {
   // Event that sends a new message
   eventButtonSendNewMessage: function() {
     // TODO: Error messages for invalid input
-    if (ui.input.newMessage.length + ui.input.newImage.length > 0) {
+    if (ui.input.newMessage.length + ui.input.newImage.length > 0 && ui.input.newImage.length <= 1000000) {
       // Display loading
       ui.data.loading.sendingNewMessage = true;
       // Send message

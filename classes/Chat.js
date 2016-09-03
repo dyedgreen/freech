@@ -333,6 +333,7 @@ class Chat {
       typeof messageText === 'string' &&
       typeof messageImage === 'string' &&
       messageText.length + messageImage.length > 0 && // Either an image or a text or both
+      messageImage.length <= 1000000 && // Max image size (images are downscaled on client side)
       this.users[userIndex].testHash(tokenHash, time)
     ) {
       // The Message seems valid, add it
