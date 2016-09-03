@@ -119,10 +119,13 @@ html {
 	font-weight:400;
 	line-height:50px;
 	text-align:left;
+	text-overflow:ellipsis;
+	white-space:nowrap;
 
 	color:#2EC4B6;
 
 	pointer-events:none;
+	overflow:hidden;
 }
 .sidebar .person:before {
 	width:10px;
@@ -233,7 +236,7 @@ html {
 	width:auto;
 	width:calc(100% - 100px);
 	height:100%;
-	padding:0 25px;
+	padding:0 75px 0 25px;
 	display:block;
 	position:absolute;
 	top:0; right:100px; bottom:0; left:0;
@@ -768,8 +771,6 @@ html {
 		height:75px;
 		padding:0;
 		top:25px; right:25px; bottom:auto; left:25px;
-
-		border-radius:10px 10px 0 0;
 	}
 	.sidebar h1 {
 		display:none;
