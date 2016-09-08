@@ -99,7 +99,7 @@ html {
 .sidebar .scroll {
 	width:100%;
 	height:auto;
-	padding:0 25px 50px 25px;
+	padding:0 25px;
 	display:block;
 	position:absolute;
 	top:100px; right:0; bottom:50px; left:0;
@@ -309,12 +309,12 @@ html {
 	display:block;
 	position:absolute;
 	top:0; right:100px; bottom:0; left:auto;
-	
+
 	background:none;
 	background-image:url(/images/attach.svg);
 	background-position:0 2px;
 	background-size:75px 150px;
-	
+
 	cursor:pointer;
 }
 .chat .compose .attach:hover,
@@ -501,6 +501,13 @@ html {
 
 /* MODALS */
 
+.modal-bg {
+	width:100vw;
+	height:100vh;
+	position:fixed;
+
+	background:#EEEFED;
+}
 .modal {
 	width:400px;
 	max-width:90%;
@@ -515,7 +522,6 @@ html {
 
 	background:#fff;
 	border-radius:10px;
-	box-shadow:0 0 0 1000px #EEEFED;
 
 	color:#2EC4B6;
 
@@ -555,29 +561,26 @@ html {
 	height:auto;
 	display:block;
 	margin:25px 0 0 0;
-	
+
 	background:#EEEFED;
 	border-radius:10px;
 }
 .modal .url {
 	width:100%;
-	height:50px;
-	padding:0 15px;
+	height:auto;
+	padding:15px;
 	display:block;
 	margin:25px 0;
 
 	font-size:20px;
 	font-weight:600;
-	line-height:50px;
+	line-height:25px;
 	text-align:left;
+	word-break:break-all;
 
 	color:#011627;
 	background:#EEEFED;
 	border-radius:10px;
-
-	white-space:nowrap;
-	overflow:hidden;
-	overflow-x:scroll;
 }
 .modal .error {
 	width:100%;
@@ -668,22 +671,22 @@ html {
 	background:#2EC4B6;
 }
 
-.modal .button.error {
+.modal .button.red {
 	color:#E71D36;
 }
-.modal .button.error:active,
-.modal .button.error:focus,
-.modal .button.error:hover {
+.modal .button.red:active,
+.modal .button.red:focus,
+.modal .button.red:hover {
 	color:#fff;
 	background:#E71D36;
 }
 
-.modal .button.cancel {
+.modal .button.yellow {
 	color:#FF9F1C;
 }
-.modal .button.cancel:active,
-.modal .button.cancel:focus,
-.modal .button.cancel:hover {
+.modal .button.yellow:active,
+.modal .button.yellow:focus,
+.modal .button.yellow:hover {
 	color:#fff;
 	background:#FF9F1C;
 }

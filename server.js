@@ -9,5 +9,5 @@ const ChatServer = require('./classes/ChatServer.js');
 Log.setLevel(Log.DEBUG);
 
 // Start the chat server
-let server = new ChatServer(8080, '/web');
+let server = new ChatServer(8080, '/web', true);
 server.open();

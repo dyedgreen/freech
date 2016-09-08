@@ -3,11 +3,17 @@
 
 // Imports
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 
 const Log = require('./Log.js');
 const Url = require('./Url.js');
 const ChatManager = require('./ChatManager.js');
+
+const sslOptions = {
+  key: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.key')),
+  cert: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.crt')),
+};
 
 /**
 * ChatServer
@@ -15,19 +21,24 @@ const ChatManager = require('./ChatManager.js');
 * This class creates the actual server that connects to
 * the reactions api, as well as serving static files from
 * a specified directory.
-* A very, very simple HTTP file server is included that
+* A very, very simple HTTP(S) file server is included that
 * serves static files and supports the following special files:
 * index.html  -- index file
 * 404.html    -- error file
 */
 class ChatServer {
 
-  constructor(port, fileDir) {
+  constructor(port, fileDir, useSSL) {
     // Set the specified file directory (or fallback to the custom one)
     this.fileDir = __dirname.replace('/classes', '').concat(fileDir || '/web');
-    // Setup the http server
+    // Setup the http(s) server, https is standart
     this.serverPort = port || 8080;
-    this.server = http.createServer();
+    this.serverUsesSSL = !(useSSL === false);
+    if (useSSL === false) {
+      this.server = http.createServer();
+    } else {
+      this.server = https.createServer(sslOptions);
+    }
 
     // Hook up all the callbacks
     this.server.on('request', (req, res) => {
@@ -37,7 +48,7 @@ class ChatServer {
     // Set up the chat manager
     this.chatManager = new ChatManager();
     // Log about this
-    Log.write(Log.DEBUG, 'Chat server instance created');
+    Log.write(Log.DEBUG, 'Chat server instance created, ssl:', this.serverUsesSSL);
   }
 
   /**
@@ -96,8 +107,8 @@ class ChatServer {
   * called on client connections. This
   * is an internal function, do not call it.
   *
-  * @param {http.IncomingMessage} req
-  * @param {http.ServerResponse} res
+  * @param {IncomingMessage} req
+  * @param {ServerResponse} res
   */
   handleRequest(req, res) {
     // Log about this
@@ -124,8 +135,8 @@ class ChatServer {
   * a 404 error, if that file does
   * not exist.
   *
-  * @param {http.IncomingMessage} req
-  * @param {http.ServerResponse} res
+  * @param {IncomingMessage} req
+  * @param {ServerResponse} res
   */
   handleFile(req, res) {
     // Construct file path, considering special files

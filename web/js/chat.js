@@ -123,6 +123,10 @@ var freech = {
       freech.tempData.chatId = freech.urlGetChatId();
     }
   },
+  urlGetProtocol: function() {
+    // Cause .protocol has bad browser support
+    return location.href.split('://')[0];
+  },
 
   // Temp Data searching functions
   getIndexOfUser: function(userId) {
@@ -263,8 +267,9 @@ var freech = {
     // Create a handshake
     var handshake = freech.socketMessageHandshake();
     if (handshake) {
-      // Create the socket and open it
-      var socket = eio('ws://'.concat(location.host));
+      // Create the socket and open it (respects http(s) settings)
+      var protocol = freech.urlGetProtocol() == 'https' ? 'wss://' : 'ws://';
+      var socket = eio(protocol.concat(location.host));
       socket.on('open', function() {
         // Register the callbacks
         socket.on('close', function() {
@@ -595,11 +600,11 @@ Vue.filter('message', function(value) {
   var valueArray = [];
   value.split(' ').forEach(function(word) {
     // Test if word is a (valid) URL
-    if (/^(https?:\/\/)?([^\s\@\.]+\.)?[^\s\@\.]+\.[^\d\s\@\/\.]+(\/[^\s]*)?$/i.test(word)) {
+    if (/^(https?:\/\/)?([^\s\@\/\.]+\.)?[^\s\@\/\.]+\.[^\d\s\@\/\.]{2,}(\/[^\s]*)?$/i.test(word)) {
       var url = ''.concat(word);
       // Work out if protocol is in url
       if (!/^https?:\/\//i.test(url)) url = 'http://'.concat(url);
-      // Remove any punctuation at the end
+      // Remove any punctuation at the end (as of now, this catches only one!)
       if (/[\.\,\;\:\-\–\…\?\!\/\(\)]$/i.test(url)) url = url.substr(0, url.length - 1);
       // Add the url to the array
       valueArray.push('<a href="'.concat(url).concat('" target="_blank" rel="noopener">'));
@@ -610,7 +615,7 @@ Vue.filter('message', function(value) {
     }
   });
   valueArray.forEach(function(word, index) {
-    // Rate the word (if no html)
+    // Rate the word (if not html)
     if (word.indexOf('<') === -1) {
       var score = 0;
       word.split('').forEach(function(char) {
