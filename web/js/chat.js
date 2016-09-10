@@ -62,7 +62,7 @@ var freech = {
   imageScale: function(dataURI, callback) {
     try {
       // Create the image resources
-      var maxHeight = 550;
+      var maxHeight = 500;
       var maxWidth = 350;
       var height = 0;
       var width = 0;

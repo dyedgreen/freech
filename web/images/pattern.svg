@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="100px" height="100px" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 39.1 (31720) - http://www.bohemiancoding.com/sketch -->
+    <title>pattern</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="pattern">
+            <rect id="BG" fill="#EEEFED" x="0" y="0" width="100" height="100"></rect>
+            <polygon id="Stripe" fill="#359AFF" transform="translate(37.500000, 37.500000) rotate(45.000000) translate(-37.500000, -37.500000) " points="19.8223305 2.14466094 55.1776695 -33.2106781 55.1776695 108.210678 19.8223305 72.8553391"></polygon>
+            <polygon id="Stripe-Copy" fill="#359AFF" transform="translate(87.500001, 87.500001) rotate(45.000000) translate(-87.500001, -87.500001) " points="69.8223294 52.1446617 105.177672 87.5000008 69.8223294 122.85534"></polygon>
+        </g>
+    </g>
+</svg>

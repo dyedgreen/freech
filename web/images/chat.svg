@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="550px" height="400px" viewBox="0 0 550 400" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 39.1 (31720) - http://www.bohemiancoding.com/sketch -->
+    <title>chat</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Window-BG" fill="#EEEFED" x="0" y="0" width="550" height="400" rx="10"></rect>
+        <rect id="Text-Input" fill="#FFFFFF" x="200" y="325" width="325" height="50" rx="10"></rect>
+        <rect id="Rectangle" fill="#2EC4B6" x="450" y="325" width="75" height="50" rx="10"></rect>
+        <rect id="Side-Element" fill="#011627" x="25" y="65" width="150" height="310" rx="10"></rect>
+        <rect id="Window-Top" fill="#E8E6E8" x="0" y="0" width="550" height="40" rx="10"></rect>
+        <rect id="Rectangle-2" fill="#F92C89" x="350" y="65" width="175" height="50" rx="10"></rect>
+        <rect id="Rectangle-2-Copy" fill="#F45D01" x="200" y="140" width="175" height="75" rx="10"></rect>
+    </g>
+</svg>
