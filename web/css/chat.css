@@ -68,7 +68,7 @@ html {
 	background:#FF9F1C;
 }
 
-.sidebar .share {
+.sidebar .button {
 	width:100%;
 	height:50px;
 	padding:0 25px;
@@ -83,17 +83,20 @@ html {
 	text-transform:uppercase;
 	text-decoration:none;
 
-	color:#2EC4B6;
+	color:rgba(255,255,255,0.5);
 	background:none;
 
 	transition:.1s;
 	cursor:pointer;
 }
-.sidebar .share:hover,
-.sidebar .share:active,
-.sidebar .share:focus {
+.sidebar .button:hover,
+.sidebar .button:active,
+.sidebar .button:focus {
 	color:#fff;
 	background:#2EC4B6;
+}
+.sidebar .button.share {
+	top:auto; right:0; bottom:50px; left:0;
 }
 
 .sidebar .scroll {
@@ -158,6 +161,26 @@ html {
 	border-radius:100%;
 
 	content:"";
+}
+
+.sidebar .person.me {
+	line-height:35px;
+}
+.sidebar .person.me:after {
+	width:auto;
+	height:25px;
+	display:block;
+	position:absolute;
+	top:25px; right:0; bottom:0; left:20px;
+	
+	font-size:15px;
+	font-weight:500;
+	line-height:20px;
+	text-align:left;
+
+	color:rgba(255,255,255,0.2);
+
+	content:"me";
 }
 
 .sidebar .person.blue {
@@ -379,14 +402,18 @@ html {
 	font-weight:600;
 	font-style:italic;
 	line-height:25px;
+	text-overflow:ellipsis;
 
 	color:rgba(0,0,0,0.2);
+	
+	white-space:nowrap;
+	overflow:hidden;
 }
 .chat .messages .message > p {
 	width:350px;
 	max-width:90%;
 	height:auto;
-	padding:25px;
+	padding:15px;
 	display:inline-block;
 
 	font-size:20px;
@@ -409,7 +436,7 @@ html {
 	box-shadow:none;
 	border-radius:2px;
 
-	transition:.1s;
+	transition:all .1s;
 }
 .chat .messages .message > p a:hover {
 	background:rgba(0,0,0,0.2);
@@ -705,6 +732,51 @@ html {
 .modal input[type=text]:focus {
 	border-bottom:5px solid #2EC4B6;
 }
+
+.modal input[type=checkbox] {
+	display:none;
+}
+.modal label.checkbox {
+	width:100%;
+	height:25px;
+	padding:0 0 0 50px;
+	display:block;
+	position:relative;
+	margin:15px 0 0 0;
+
+	font-size:20px;
+	font-weight:600;
+	line-height:25px;
+	text-align:left;
+	text-transform:capitalize;
+
+	color:rgba(0,0,0,0.5);
+	
+	cursor:pointer;
+}
+.modal label.checkbox:before {
+	width:25px;
+	height:25px;
+	display:block;
+	position:absolute;
+	top:0; right:auto; bottom:0; left:0;
+	
+	border-radius:5px;
+	background-image:url(/images/checkbox.svg);
+	background-position:12px 12px;
+	background-size:1px 1px;
+	background-repeat:no-repeat;
+	background-color:#EEEFED;
+	
+	content:"";
+	transition:all .1s;
+}
+.modal input[type=checkbox]:checked + label.checkbox:before {
+	background-position:0 0;
+	background-size:25px 25px;
+	background-color:#2EC4B6;
+}
+
 .modal .button {
 	width:100%;
 	height:50px;
@@ -844,15 +916,19 @@ html {
 	.sidebar .warning {
 		padding:12px 25px;
 	}
-	.sidebar .share {
+	.sidebar .button.share {
 		width:100%;
 		height:75px;
 		padding:0 25px;
 		display:inline-block;
 		position:relative;
+		top:0; right:0; bottom:0; left:0;
 
 		text-align:center;
 		line-height:75px;
+	}
+	.sidebar .button.settings {
+		display:none;
 	}
 	.sidebar .scroll {
 		display:none;

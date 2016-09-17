@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="25px" height="25px" viewBox="0 0 25 25" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 39.1 (31720) - http://www.bohemiancoding.com/sketch -->
+    <title>Checkbox</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" fill-opacity="0.502717391">
+        <g id="Checkbox" fill="#000000">
+            <path d="M13.2530483,15.7530483 L7.25304833,15.7530483 L7.25304833,19.7530483 L15.2530483,19.7530483 L17.2530483,19.7530483 L17.2530483,0.753048327 L13.2530483,0.753048327 L13.2530483,15.7530483 Z" id="tick" transform="translate(12.253048, 10.253048) rotate(45.000000) translate(-12.253048, -10.253048) "></path>
+        </g>
+    </g>
+</svg>

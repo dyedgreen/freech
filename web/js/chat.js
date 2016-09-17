@@ -8,6 +8,11 @@ var freech = {
   data: {
     users: {},
     expirationTimes: [],
+    settings: {
+      notifications: false,
+      loadMessagesOnScroll: true,
+    },
+    v: 1,
   },
 
   // Data that is loaded on runtime
@@ -30,20 +35,24 @@ var freech = {
     if (typeof dataStored === 'string') {
       try {
         // Decode and load the data
-        freech.data = JSON.parse(dataStored);
-        // Clean all old useres
-        var newExpirationTimes = [];
-        freech.data.expirationTimes.forEach(function(expirationData, index) {
-          if (expirationData.time < Date.now()) {
-            // Delete the old user data
-            delete freech.data.users[expirationData.chatId];
-          } else {
-            // Push the user to new expiration times
-            newExpirationTimes.push(expirationData);
-          }
-        });
-        freech.data.expirationTimes = newExpirationTimes;
-        return true;
+        var loadedData = JSON.parse(dataStored);
+        // Test if the data model has been updated
+        if (loadedData.hasOwnProperty('v') && loadedData.v === freech.data.v) {
+          freech.data = loadedData;
+          // Clean all old useres
+          var newExpirationTimes = [];
+          freech.data.expirationTimes.forEach(function(expirationData, index) {
+            if (expirationData.time < Date.now()) {
+              // Delete the old user data
+              delete freech.data.users[expirationData.chatId];
+            } else {
+              // Push the user to new expiration times
+              newExpirationTimes.push(expirationData);
+            }
+          });
+          freech.data.expirationTimes = newExpirationTimes;
+        }
+        return freech.dataStore();
       } catch (e) {}
     }
     return false;
@@ -127,10 +136,10 @@ var freech = {
     return location.search.replace('?', '');
   },
   urlHasChatId: function() {
-    return freech.urlGetChatId().length === 128;
+    return freech.validateChatId(freech.urlGetChatId());
   },
   urlSetChatId: function(chatId) {
-    if (typeof chatId === 'string' && chatId.length === 128) {
+    if (freech.validateChatId(chatId)) {
       window.history.pushState('object or string', document.getElementsByTagName('title')[0].innerHTML, location.href.split('?')[0].concat('?').concat(chatId));
     }
   },
@@ -142,6 +151,10 @@ var freech = {
   urlGetProtocol: function() {
     // Cause .protocol has bad browser support
     return location.href.split('://')[0];
+  },
+
+  validateChatId: function(chatId) {
+    return typeof chatId === 'string' && chatId.length === 64;
   },
 
   // Temp Data searching functions
@@ -159,7 +172,7 @@ var freech = {
   // Chat and User Creation / Data Management
   chatExists: function() {
     // Return whether the current chat exists ('soft', client-side verification)
-    return freech.tempData.chatId.length === 128;
+    return freech.validateChatId(freech.tempData.chatId);
   },
   chatUserExists: function() {
     // Return whether the current chat was already joined
@@ -323,12 +336,6 @@ var freech = {
               }
               // The loaded old messages where recived (WILL CALL UI_UPDATE CALLBACK)
               case 20: {
-                // If initial load: new messages callback
-                if (freech.tempData.messages.length === 0) {
-                  setTimeout(function() {
-                    callbackMessagesLoaded(true);
-                  }, 10);
-                }
                 // Store the old messages & the total message count
                 freech.tempData.messages = dataObj.messages.concat(freech.tempData.messages);
                 freech.tempData.totalMessageCount = dataObj.totalMessageCount;
@@ -398,6 +405,7 @@ var ui = {
     modals: {
       newChat: false,
       newUser: false,
+      settings: false,
       share: false,
       disconnect: false,
     },
@@ -405,6 +413,7 @@ var ui = {
       createNewChat: false,
       createNewUser: false,
       createNewUserInput: false,
+      settingsWarning: '',
     },
     loading: {
       full: true, /* the only initially true value */
@@ -414,7 +423,7 @@ var ui = {
     },
     content: {
       shareUrl: '',
-    }
+    },
   },
 
   // User input data
@@ -424,9 +433,15 @@ var ui = {
     newImage: '',
   },
 
+  // Feature support detected
+  support: {
+    notifications: false,
+  },
+
   // Private state
   private: {
     oldScrollHeight: 0,
+    isInitialMessageLoad: true,
   },
 
   // Scrolls the chat to the correct place when a new message is recived / old messages where loaded
@@ -458,6 +473,43 @@ var ui = {
         });
       };
       reader.readAsDataURL(inputElement.files[0]);
+    }
+  },
+
+  // Detects all supported features
+  detectSupportedFeatures: function() {
+    // Test if notifications are supported
+    ui.support.notifications = !!('Notification' in window);
+  },
+
+  // Event that is called when messages are loaded
+  eventMessagesLoaded: function(messagesAreNew) {
+    // Scroll the chat
+    ui.chatScroll(messagesAreNew);
+    // Send a push notification (if the messages are new & this feature is supported)
+    if (
+      freech.data.settings.notifications &&
+      ui.support.notifications &&
+      Notification.permission == 'granted' &&
+      !document.hasFocus() &&
+      messagesAreNew &&
+      freech.tempData.messages.length > 0
+    ) {
+      // Get the last message
+      var latestMessage = freech.tempData.messages[freech.tempData.messages.length - 1];
+      // Send the notification
+      var notification = new Notification(
+        ''.concat(freech.getNameOfUser(latestMessage.userId).concat(' has sent a message')),
+        {
+          body: latestMessage.text ? latestMessage.text : '',
+          icon: latestMessage.image ? latestMessage.image : '',
+        }
+      );
+    }
+    // Scroll to bottom, if the first load
+    if (ui.private.isInitialMessageLoad) {
+      ui.private.isInitialMessageLoad = false;
+      ui.chatScroll(true);
     }
   },
 
@@ -500,7 +552,7 @@ var ui = {
             ui.data.modals.disconnect = true;
           }, function(messagesAreNew) {
             // Chat recived new/old message
-            ui.chatScroll(messagesAreNew);
+            ui.eventMessagesLoaded(messagesAreNew);
           });
         }
       });
@@ -554,12 +606,43 @@ var ui = {
     freech.socketLoadOldMessages();
   },
 
+  // Events that handle the notification dialogue message buttons
+  eventButtonToggleSettings: function() {
+    // Open / Close the settings modal & reset the settings text error
+    ui.data.modals.settings = !ui.data.modals.settings;
+    ui.data.errors.settingsWarning = '';
+    // Fix the freech data state
+    freech.dataStore();
+  },
+
   // Event that is executed on scroll in the chat messages-view
   eventScrollChat: function() {
     var chatWindow = document.getElementById('chat-messages-scroll');
-    if (chatWindow.scrollTop <= 0) {
+    if (chatWindow.scrollTop <= 0 && freech.data.settings.loadMessagesOnScroll) {
       // Load old messages
       freech.socketLoadOldMessages();
+    }
+  },
+
+  // Asks for notification permission
+  eventSettingsEnableNotifications: function() {
+    if (ui.support.notifications) {
+      // Ask for notification permission (if not denied)
+      if (Notification.permission !== 'denied') {
+        Notification.requestPermission(function (permission) {
+          // Give feedback on fail & reset setting status
+          if (permission !== 'granted') {
+            freech.data.settings.notifications = false;
+            ui.data.errors.settingsWarning = 'Failed to enable notifications.';
+          }
+        });
+      } else {
+        // Give feedback on fail & reset setting status
+        setTimeout(function(){
+          freech.data.settings.notifications = false;
+          ui.data.errors.settingsWarning = 'Failed to enable notifications.';
+        }, 20);
+      }
     }
   },
 
@@ -570,6 +653,7 @@ var ui = {
 ui.data.loading.full = true;
 freech.urlLoadChatId();
 freech.dataLoad();
+ui.detectSupportedFeatures();
 // Decide what login-proccess is necessary
 if (freech.chatExists() && freech.chatUserExists()) {
   // Try to auto-join the chat
@@ -582,7 +666,7 @@ if (freech.chatExists() && freech.chatUserExists()) {
     ui.data.modals.disconnect = true;
   }, function(messagesAreNew) {
     // Chat recived new/old message
-    ui.chatScroll(messagesAreNew);
+    ui.eventMessagesLoaded(messagesAreNew);
   });
 } else if (freech.chatExists()) {
   // Open the create user dialogue
@@ -614,7 +698,7 @@ Vue.filter('userclass', function(value) {
   var index = freech.getIndexOfUser(value);
   var classlist = '';
   // Is this me?
-  if (value !== freech.chatUserId()) classlist = classlist.concat('notme');
+  classlist = classlist.concat(value === freech.chatUserId() ? 'me' : 'notme');
   // The correct color
   try {
     classlist = classlist.concat(' ').concat(colors[chars.indexOf(''.concat(value).charAt(0)) % colors.length]);
@@ -680,6 +764,7 @@ new Vue({
     // The UI state
     uiData: ui.data,
     input: ui.input,
+    support: ui.support,
   },
   methods: {
     buttonNewChat: ui.eventButtonNewChat,
@@ -690,6 +775,8 @@ new Vue({
     buttonSendImage: ui.eventButtonSendImage,
     buttonCancelImage: ui.eventButtonCancelImage,
     buttonLoadOldMessages: ui.eventButtonLoadOldMessages,
+    buttonToggleSettings: ui.eventButtonToggleSettings,
     scrollChat: ui.eventScrollChat,
+    settingsEnableNotifications: ui.eventSettingsEnableNotifications,
   },
 });

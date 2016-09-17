@@ -24,8 +24,10 @@
 					<span>{{ user.name }}</span>
 				</div>
 			</div>
-			<!-- The share button -->
-			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="share">Invite a friend</a>
+			<!-- The Share Button -->
+			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button share">Invite a friend</a>
+			<!-- The Settings Button -->
+			<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button settings">Settings</a>
 			<!-- The Expiration Notice -->
 			<span class="warning" v-if="freechTemp.expirationTimeLeft < 3600000">This chat will expire in {{ Math.floor(freechTemp.expirationTimeLeft / 60000) }} minutes.</span>
 		</div>
@@ -98,6 +100,26 @@
 				</span>
 				<!-- Close -->
 				<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
+			</div>
+		</div>
+		
+		<!-- Settings Modal -->
+		<div class="modal-bg" v-if="uiData.modals.settings" transition="modal">
+			<div class="modal">
+				<!-- The Error Feedback -->
+				<span class="error" v-if="uiData.errors.settingsWarning !== ''">{{ uiData.errors.settingsWarning }}</span>
+				<!-- The Settings Page -->
+				<h1>Settings</h1>
+				<!-- Load on Scoll -->
+				<input id="scroll" type="checkbox" v-model="freechData.settings.loadMessagesOnScroll">
+				<label class="checkbox" for="scroll">Load Messages On Scroll</label>
+				<!-- Notifications -->
+				<span v-if="support.notifications">
+					<input id="notifications" type="checkbox" v-model="freechData.settings.notifications">
+					<label class="checkbox" for="notifications" v-on:click="settingsEnableNotifications">Enable Notifications</label>
+				</span>
+				<!-- Close -->
+				<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Done</a>
 			</div>
 		</div>
 

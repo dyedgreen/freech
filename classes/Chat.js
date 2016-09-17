@@ -19,7 +19,7 @@ class Chat {
 
   constructor(destructor) {
     // Create the chat id
-    this.id = RandString.long;
+    this.id = RandString.medium;
     // Set up the needed data structure
     this.users = [];
     this.messages = [];
