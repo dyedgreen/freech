@@ -273,7 +273,7 @@ var freech = {
   },
 
   // Socket data sending / reciving functions
-  socketConnect: function(callbackOpen, callbackClose, callbackNewMessage) {
+  socketConnect: function(callbackOpen, callbackClose, callbackMessagesLoaded) {
     // Create a handshake
     var handshake = freech.socketMessageHandshake();
     if (handshake) {
@@ -298,7 +298,7 @@ var freech = {
                 // Store the message & the new total message count
                 freech.tempData.messages.push(dataObj.message);
                 freech.tempData.totalMessageCount = dataObj.totalMessageCount;
-                callbackNewMessage();
+                callbackMessagesLoaded(true);
                 break;
               }
               // New user-list was recived
@@ -321,17 +321,21 @@ var freech = {
                 }, 60000);
                 break;
               }
-              // The loaded old messages where recived
+              // The loaded old messages where recived (WILL CALL UI_UPDATE CALLBACK)
               case 20: {
                 // If initial load: new messages callback
                 if (freech.tempData.messages.length === 0) {
-                  setTimeout(callbackNewMessage, 20);
+                  setTimeout(function() {
+                    callbackMessagesLoaded(true);
+                  }, 10);
                 }
                 // Store the old messages & the total message count
                 freech.tempData.messages = dataObj.messages.concat(freech.tempData.messages);
                 freech.tempData.totalMessageCount = dataObj.totalMessageCount;
                 // Set the old-messages loading to done (if there are more messages to be loaded)
                 if (dataObj.totalMessageCount >= freech.tempData.messages.length) freech.tempData.loadingOldMessages = false;
+                // Old messages callback
+                callbackMessagesLoaded(false);
                 break;
               }
             }
@@ -420,11 +424,24 @@ var ui = {
     newImage: '',
   },
 
-  // Scrolls the chat to the correct place when a new message is recived
-  chatScroll: function() {
+  // Private state
+  private: {
+    oldScrollHeight: 0,
+  },
+
+  // Scrolls the chat to the correct place when a new message is recived / old messages where loaded
+  chatScroll: function(contentAddedOnBottom) {
     setTimeout(function() {
       var chatWindow = document.getElementById('chat-messages-scroll');
-      chatWindow.scrollTop = chatWindow.scrollHeight;
+      if (contentAddedOnBottom) {
+        // Scroll to bottom (new message was added)
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      } else {
+        // Preserve scroll position (old messages where loaded)
+        chatWindow.scrollTop = chatWindow.scrollTop + (chatWindow.scrollHeight - ui.private.oldScrollHeight);
+      }
+      // Store the scroll height
+      ui.private.oldScrollHeight = chatWindow.scrollHeight;
     }, 20);
   },
 
@@ -481,9 +498,9 @@ var ui = {
             // Chat closed
             ui.data.loading.full = false;
             ui.data.modals.disconnect = true;
-          }, function() {
-            // Chat recived new message
-            ui.chatScroll();
+          }, function(messagesAreNew) {
+            // Chat recived new/old message
+            ui.chatScroll(messagesAreNew);
           });
         }
       });
@@ -563,9 +580,9 @@ if (freech.chatExists() && freech.chatUserExists()) {
     // Chat closed
     ui.data.loading.full = false;
     ui.data.modals.disconnect = true;
-  }, function() {
-    // Chat recived new message
-    ui.chatScroll();
+  }, function(messagesAreNew) {
+    // Chat recived new/old message
+    ui.chatScroll(messagesAreNew);
   });
 } else if (freech.chatExists()) {
   // Open the create user dialogue
