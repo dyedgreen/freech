@@ -33,7 +33,6 @@ html {
 }
 .header h1 {
 	width:500px;
-	max-width:90%;
 	height:500px;
 	display:block;
 	margin:25px auto 0 auto;
@@ -100,7 +99,7 @@ html {
 	
 	background:#fff;
 	background-image:url(/images/icons.svg);
-	background-size:75px 300px;
+	background-size:75px 375px;
 	background-repeat:no-repeat;
 	box-shadow:0 0 0 25px rgba(0,0,0,0.2);
 	border-radius:100%;
@@ -157,6 +156,7 @@ html {
 	background:rgba(0,0,0,0.2);
 	
 	overflow:hidden;
+	white-space:nowrap;
 	transition:.1s;
 }
 .feature .button:active,
@@ -189,6 +189,13 @@ html {
 .feature.chat .icon {
 	background-position:0px -225px;
 }
+.feature.laptop {
+	background:#E71D36;
+}
+.feature.laptop .icon {
+	background-position:0px -300px;
+}
+
 
 /* FOOTER */
 
@@ -216,4 +223,39 @@ html {
 }
 .footer a:hover {
 	text-decoration:underline;
+}
+
+/* SMALL SCREENS */
+
+@media (max-width: 550px) {
+	.header h1 {
+		width:100%;
+		max-width:100%;
+		margin:0 auto;
+		
+		border-radius:0;
+	}
+	
+	.feature {
+		white-space:normal;
+	}
+	.feature .icon {
+		display:block;
+		margin:25px auto;
+	}
+	.feature h1 {
+		width:100%;
+		height:auto;
+		padding:25px;
+		display:block;
+		
+		text-align:center;
+		line-height:30px;
+	}
+	.feature p {
+		width:100%;
+		margin:0 auto 25px auto;
+		
+		text-align:justify;
+	}
 }

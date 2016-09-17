@@ -32,7 +32,7 @@ class ChatServer {
     // Set the specified file directory (or fallback to the custom one)
     this.fileDir = __dirname.replace('/classes', '').concat(fileDir || '/web');
     // Setup the http(s) server, https is standart
-    this.serverPort = port || useSSL === false ? 80 : 443;
+    this.serverPort = port || (useSSL === false ? 80 : 443);
     this.serverUsesSSL = !(useSSL === false);
     if (useSSL === false) {
       this.server = http.createServer();

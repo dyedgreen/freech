@@ -36,12 +36,15 @@
 			<div id="chat-messages-scroll" v-on:scroll="scrollChat" class="messages">
 
 				<!-- The loading indicator -->
-				<span class="loading" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
+				<span class="notice" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
 				<!-- The no messages indicator -->
-				<span class="loading" v-if="freechTemp.totalMessageCount === -1">No messages</span>
+				<span class="notice" v-if="freechTemp.totalMessageCount === -1">No messages</span>
+				
+				<!-- The load old button -->
+				<a href="javascript:void(0)" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1" v-show="!freechTemp.loadingOldMessages"  class="button" v-on:click="buttonLoadOldMessages">Load Old Messages</a>
 
 				<!-- A single message -->
-				<div v-for="message in freechTemp.messages" class="message {{ message.userId | userclass }}">
+				<div v-for="message in freechTemp.messages" class="message {{ message.userId | userclass }}" transition="message">
 					<!-- Sender & Timestamp -->
 					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
 					<!-- Message text -->
@@ -65,7 +68,7 @@
 		</div>
 
 		<!-- Send Image Modal -->
-		<div class="modal-bg" v-if="input.newImage != ''">
+		<div class="modal-bg" v-if="input.newImage != ''" transition="modal">
 			<div class="modal">
 				<!-- Image preview -->
 				<img v-bind:src="input.newImage">
@@ -78,7 +81,7 @@
 		</div>
 
 		<!-- Share This Chat Modal -->
-		<div class="modal-bg" v-if="uiData.modals.share">
+		<div class="modal-bg" v-if="uiData.modals.share" transition="modal">
 			<div class="modal">
 				<h1>Share this chat</h1>
 				<p>To share this chat, please invite your friends using this URL.</p>
@@ -99,7 +102,7 @@
 		</div>
 
 		<!-- New Chat Modal -->
-		<div class="modal-bg" v-if="uiData.modals.newChat">
+		<div class="modal-bg" v-if="uiData.modals.newChat" transition="modal">
 			<div class="modal">
 				<span class="error" v-if="uiData.errors.createNewChat">Failed to create a chat.</span>
 				<h1>New chat</h1>
@@ -109,7 +112,7 @@
 		</div>
 
 		<!-- Enter Name Modal -->
-		<div class="modal-bg" v-if="uiData.modals.newUser">
+		<div class="modal-bg" v-if="uiData.modals.newUser" transition="modal">
 			<div class="modal">
 				<span class="error" v-if="uiData.errors.createNewUser">Failed to join the chat. Have you tried <a href="/chat">creating a new one</a>?</span>
 				<span class="error" v-if="uiData.errors.createNewUserInput">You need to enter a name.</span>
@@ -121,7 +124,7 @@
 		</div>
 
 		<!-- Connection Lost Modal -->
-		<div class="modal-bg" v-if="uiData.modals.disconnect">
+		<div class="modal-bg" v-if="uiData.modals.disconnect" transition="modal">
 			<div class="modal error">
 				<!-- Lost connection -->
 				<span v-if="freechTemp.expirationTimeLeft > 0">

@@ -106,6 +106,22 @@ var freech = {
     }
   },
 
+  // Creates a random string
+  randomString: function(length) {
+    // Correct the input
+    if (typeof length !== 'number' || length < 1) {
+      length = 128;
+    }
+    // Return a random string of said length (used for ids)
+    var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // Build the user template with an id
+    var returnString = '';
+    for (var i = 0; i < length; i ++) {
+      returnString = returnString.concat(chars.substr(Math.floor(Math.random() * (chars.length - 1)), 1));
+    }
+    return returnString;
+  },
+
   // Url state / chat id
   urlGetChatId: function() {
     return location.search.replace('?', '');
@@ -172,14 +188,8 @@ var freech = {
   },
   chatCreateUser: function(name, callback) {
     // Creates a user and automatically registers it with the current chat (only if name && chat)
-    var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    // Build the user template with an id
-    var id = '';
-    for (var i = 0; i < 128; i ++) {
-      id = id.concat(chars.substr(Math.floor(Math.random() * (chars.length - 1)), 1));
-    }
     var user = {
-      id: id,
+      id: freech.randomString(128),
       name: ''.concat(name),
       token: '',
     };
@@ -254,7 +264,7 @@ var freech = {
       try {
         return JSON.stringify({
           type: 2,
-          count: 10,
+          count: 5,
           lastMessageId: freech.tempData.messages.length > 0 ? freech.tempData.messages[0].id : '',
         });
       } catch (e) {}
@@ -325,7 +335,9 @@ var freech = {
                 break;
               }
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error(e);
+          }
         });
         // Connect to the chat
         socket.send(handshake, function() {
@@ -344,8 +356,10 @@ var freech = {
     }
   },
   socketSendMessage: function(text, image, callback) {
+    // Create the network message string
     var socketMessage = freech.socketMessageNewMessage(text, image);
     if (socketMessage && freech.tempData.connected) {
+      // Send the message
       freech.tempData.socket.send(socketMessage, function(){
         callback(true);
       });
@@ -517,11 +531,17 @@ var ui = {
     ui.input.newImage = '';
   },
 
+  // Event that loads old messages
+  eventButtonLoadOldMessages: function() {
+    // Load old messages
+    freech.socketLoadOldMessages();
+  },
+
   // Event that is executed on scroll in the chat messages-view
   eventScrollChat: function() {
     var chatWindow = document.getElementById('chat-messages-scroll');
-    if (chatWindow.scrollTop < 5) {
-      // Load new messages
+    if (chatWindow.scrollTop <= 0) {
+      // Load old messages
       freech.socketLoadOldMessages();
     }
   },
@@ -548,12 +568,12 @@ if (freech.chatExists() && freech.chatUserExists()) {
     ui.chatScroll();
   });
 } else if (freech.chatExists()) {
-  // Open the create user dialougue
+  // Open the create user dialogue
   ui.data.modals.newChat = false;
   ui.data.modals.newUser = true;
   ui.data.loading.full = false;
 } else {
-  // Open the new chat dialougue
+  // Open the new chat dialogue
   ui.data.modals.newChat = true;
   ui.data.modals.newUser = false;
   ui.data.loading.full = false;
@@ -652,6 +672,7 @@ new Vue({
     buttonSendNewMessage: ui.eventButtonSendNewMessage,
     buttonSendImage: ui.eventButtonSendImage,
     buttonCancelImage: ui.eventButtonCancelImage,
+    buttonLoadOldMessages: ui.eventButtonLoadOldMessages,
     scrollChat: ui.eventScrollChat,
   },
 });
