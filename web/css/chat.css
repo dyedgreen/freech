@@ -20,6 +20,15 @@ html {
 	background:#EEEFED;
 }
 
+*::selection {
+    color:inherit;
+    background:rgba(0,0,0,0.2);
+}
+*::-moz-selection {
+    color:inherit;
+    background:rgba(0,0,0,0.2);
+}
+
 /* SIDEBAR */
 
 .sidebar {
@@ -672,7 +681,8 @@ html {
 	background:#EEEFED;
 	border-radius:10px;
 }
-.modal .error {
+.modal .error,
+.modal .warning {
 	width:100%;
 	height:auto;
 	box-sizing:content-box;
@@ -686,12 +696,16 @@ html {
 	text-align:left;
 
 	color:#fff;
-	background:#E71D36;
+	background:#FF9F1C;
 }
-.modal .error a {
+.modal .error a,
+.modal .warning a {
 	text-decoration:underline;
 
 	color:#fff;
+}
+.modal .error {
+	background:#E71D36;
 }
 .modal input[type=text] {
 	width:100%;
@@ -753,6 +767,12 @@ html {
 	color:rgba(0,0,0,0.5);
 	
 	cursor:pointer;
+}
+.modal label.checkbox::selection {
+    background:rgba(0,0,0,0);
+}
+.modal label.checkbox::-moz-selection {
+    background:rgba(0,0,0,0);
 }
 .modal label.checkbox:before {
 	width:25px;

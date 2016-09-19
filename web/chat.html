@@ -29,7 +29,7 @@
 			<!-- The Settings Button -->
 			<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button settings">Settings</a>
 			<!-- The Expiration Notice -->
-			<span class="warning" v-if="freechTemp.expirationTimeLeft < 3600000">This chat will expire in {{ Math.floor(freechTemp.expirationTimeLeft / 60000) }} minutes.</span>
+			<span class="warning" v-if="freechTemp.expirationTimeLeft < 3600000">This chat will expire in {{ freechTemp.expirationTimeLeft | mstotime }}.</span>
 		</div>
 
 		<!-- The Chat -->
@@ -46,7 +46,7 @@
 				<a href="javascript:void(0)" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1" v-show="!freechTemp.loadingOldMessages"  class="button" v-on:click="buttonLoadOldMessages">Load Old Messages</a>
 
 				<!-- A single message -->
-				<div v-for="message in freechTemp.messages" class="message {{ message.userId | userclass }}" transition="message">
+				<div v-for="message in freechTemp.messages" track-by="id" class="message {{ message.userId | userclass }}" transition="message">
 					<!-- Sender & Timestamp -->
 					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
 					<!-- Message text -->
@@ -57,6 +57,18 @@
 					<img v-if="message.image && message.text !== 'nogodsnomasters'" v-bind:src="message.image">
 					<!-- Simple Easter Egg -->
 					<img v-if="message.text === 'nogodsnomasters'" v-bind:src="'./images/no_gods-no_masters.png'">
+				</div>
+				
+				<!-- A sending message -->
+				<div v-for="message in freechTemp.sendingMessages" class="message">
+					<!-- Sending indication -->
+					<span>Sending ...</span>
+					<!-- Message text -->
+					<p v-if="message.text">{{{ message.text | message }}}</p>
+					<!-- Spacing -->
+					<span v-if="message.text && message.image" style="display:block"></span>
+					<!-- Attached image -->
+					<img v-if="message.image" v-bind:src="message.image">
 				</div>
 
 			</div>
@@ -108,6 +120,8 @@
 			<div class="modal">
 				<!-- The Error Feedback -->
 				<span class="error" v-if="uiData.errors.settingsWarning !== ''">{{ uiData.errors.settingsWarning }}</span>
+				<!-- Time Warning -->
+				<span class="warning" v-else>This chat will expire in {{ freechTemp.expirationTimeLeft | mstotime }}.</span>
 				<!-- The Settings Page -->
 				<h1>Settings</h1>
 				<!-- Load on Scoll -->

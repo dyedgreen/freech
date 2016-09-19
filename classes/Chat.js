@@ -48,9 +48,10 @@ class Chat {
     // Test if the user is valid
     if (
       userIndex !== -1 && // User is registered
-      this.indexOfConnectedUser(userId) === -1 && // User is not already connected FIXME: Timeout on 'real' server could cause reconnection problems
       this.users[userIndex].testHash(tokenHash, time) // The supplied token hash was valid
     ) {
+      // If this user has an open connection, close it
+      if (this.indexOfConnectedUser(userId) !== -1) this.disconnectUser(userId);
       // Add this to the connections
       this.connections.push({
         userId,
@@ -93,10 +94,8 @@ class Chat {
     if (connectionIndex !== -1) {
       // Close the socket
       this.connections[connectionIndex].socket.close();
-      setImmediate(() => {
-        // Remove the user from the connection list
-        this.connections.splice(connectionIndex, 1);
-      });
+      // Remove the user from the connection list
+      this.connections.splice(connectionIndex, 1);
       // Update everyones user list
       this.pushUserList();
       // Log about the event

@@ -18,7 +18,11 @@ let logFile = '/log.log';
 * It can be configured and run from anywhere
 * in the program.
 *
-* TODO: Write logging to file, split in an useful way
+* TODO: Implement this
+* The Log can also store statistics. The statistics
+* are stored in a simple csv file.
+*
+* TODO: Split Log-File in an useful way
 */
 class Log {
 

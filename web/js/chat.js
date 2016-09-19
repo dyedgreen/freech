@@ -22,6 +22,7 @@ var freech = {
     expirationTimeLeft: 86400000,
     userList: [],
     messages: [],
+    sendingMessages: [],
     totalMessageCount: -1,
     loadingOldMessages: false,
     socket: null,
@@ -311,6 +312,9 @@ var freech = {
                 // Store the message & the new total message count
                 freech.tempData.messages.push(dataObj.message);
                 freech.tempData.totalMessageCount = dataObj.totalMessageCount;
+                // Remove the message from the sending messages list (assuming that 1 message by me recived == one send)
+                if (dataObj.message.userId === freech.chatUserId()) freech.tempData.sendingMessages.shift();
+                // Hit the ui update callback
                 callbackMessagesLoaded(true);
                 break;
               }
@@ -371,7 +375,10 @@ var freech = {
     var socketMessage = freech.socketMessageNewMessage(text, image);
     if (socketMessage && freech.tempData.connected) {
       // Send the message
-      freech.tempData.socket.send(socketMessage, function(){
+      freech.tempData.socket.send(socketMessage, function() {
+        // Add the messsage to the sending messages
+        freech.tempData.sendingMessages.push({ text: text, image: image });
+        // Hit the callback
         callback(true);
       });
       return true;
@@ -497,14 +504,16 @@ var ui = {
     ) {
       // Get the last message
       var latestMessage = freech.tempData.messages[freech.tempData.messages.length - 1];
-      // Send the notification
-      var notification = new Notification(
-        ''.concat(freech.getNameOfUser(latestMessage.userId).concat(' has sent a message')),
-        {
-          body: latestMessage.text ? latestMessage.text : '',
-          icon: latestMessage.image ? latestMessage.image : '',
-        }
-      );
+      // Send the notification (if not send by this user)
+      if (latestMessage.userId !== freech.chatUserId()) {
+        var notification = new Notification(
+          ''.concat(freech.getNameOfUser(latestMessage.userId).concat(' has sent a message')),
+          {
+            body: latestMessage.text ? latestMessage.text : '',
+            icon: latestMessage.image ? latestMessage.image : '',
+          }
+        );
+      }
     }
     // Scroll to bottom, if the first load
     if (ui.private.isInitialMessageLoad) {
@@ -533,7 +542,8 @@ var ui = {
     ui.data.loading.creatingUser = true;
     ui.data.errors.createNewUser = false;
     ui.data.errors.createNewUserInput = false;
-    if (ui.input.newUserName.length > 0) {
+    // Validate the user name input
+    if (ui.input.newUserName.length > 0 && !/^[\s\t\n\r]*$/i.test(ui.input.newUserName)) {
       freech.chatCreateUser(ui.input.newUserName, function(success) {
         ui.data.loading.creatingUser = false;
         ui.data.errors.createNewUser = !success;
@@ -582,15 +592,20 @@ var ui = {
       ui.data.loading.sendingNewMessage = true;
       // Send message
       freech.socketSendMessage(ui.input.newMessage, ui.input.newImage, function(success) {
-        // Hide loading
+        // Hide loading (This loading waits for the socket to drain, not for the acual package)
         ui.data.loading.sendingNewMessage = false;
         if (success) {
+          // Clear the input
           ui.input.newImage = '';
           ui.input.newMessage = '';
+          // Scroll the chat to the bottom
+          ui.chatScroll(true);
         } else {
           // TODO: Display an error on fail
         }
       });
+    } else {
+      // TODO: Display an error for invalid message
     }
   },
 
@@ -690,6 +705,16 @@ Vue.filter('timestamp', function(value) {
     return newVal;
 	}
 	return value;
+});
+// Filter that displays the time like 15h 35min
+Vue.filter('mstotime', function(value) {
+  if (typeof value === 'number') {
+    var newVal = '';
+    if (value > 3600000) newVal = newVal.concat(Math.floor(value / 3600000)).concat('h ');
+    newVal = newVal.concat(Math.floor(value / 60000) % 60).concat('min');
+    return newVal;
+  }
+  return value;
 });
 // Userclass filter, returns the correct conditional classes for an userId
 Vue.filter('userclass', function(value) {

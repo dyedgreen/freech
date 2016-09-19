@@ -74,7 +74,8 @@ class User {
   * @param {string} userName
   */
   static validateName(userName) {
-    return typeof userName === 'string' && userName.length > 0;
+    // The users name must be a string, must not be empty, must not consist of only whitespace characters
+    return typeof userName === 'string' && userName.length > 0 && !/^[\s\t\n\r]*$/i.test(userName);
   }
 
 }
