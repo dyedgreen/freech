@@ -10,11 +10,6 @@ const Log = require('./Log.js');
 const Url = require('./Url.js');
 const ChatManager = require('./ChatManager.js');
 
-const sslOptions = {
-  key: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.key')),
-  cert: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.crt')),
-};
-
 /**
 * ChatServer
 *
@@ -35,8 +30,15 @@ class ChatServer {
     this.serverPort = port || (useSSL === false ? 80 : 443);
     this.serverUsesSSL = !(useSSL === false);
     if (useSSL === false) {
+      // Open the server
       this.server = http.createServer();
     } else {
+      // Load the SSL certificates
+      const sslOptions = {
+        key: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.key')),
+        cert: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.crt')),
+      };
+      // Open the server
       this.server = https.createServer(sslOptions);
     }
 
