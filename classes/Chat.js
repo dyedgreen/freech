@@ -145,6 +145,15 @@ class Chat {
           this.sendMessages(socket, count, lastMessageId);
           break;
         }
+        // The user wants to update his status
+        case NetworkMessageType.USER.STATUSUPDATE: {
+          // Socket message format:
+          // { type, status }
+          if (dataObject.hasOwnProperty('status') && typeof dataObject.status === 'string') {
+            this.pushUserStatus(dataObject.status, userId);
+          }
+          break;
+        }
         default: {
           // Log this event
           Log.write(Log.INFO, 'Unknown message type');
@@ -303,6 +312,32 @@ class Chat {
     });
     // Log this
     Log.write(Log.DEBUG, 'Pushing new user list to all connected users');
+  }
+
+  pushUserStatus(status, userId) {
+    setImmediate(() => {
+      // Send the new status to everyone (exept the emitting user, to preserve network bandwith)
+      try {
+        const socketMessage = {
+          type: NetworkMessageType.UPDATE.USERSTATUS,
+          userId: userId,
+          status,
+        };
+        const socketMessageString = JSON.stringify(socketMessage);
+        this.connections.forEach(conn => {
+          if (conn.userId !== userId) {
+            setImmediate(() => {
+              conn.socket.send(socketMessageString);
+            });
+          }
+        });
+      } catch (e) {
+        // Log the error
+        Log.write(Log.ERROR, 'Could not send new user status to connected users');
+      }
+    });
+    // Log this
+    Log.write(Log.DEBUG, 'Pushing new user status to all connected users');
   }
 
   /**

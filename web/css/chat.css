@@ -114,7 +114,7 @@ html {
 	padding:0 25px;
 	display:block;
 	position:absolute;
-	top:100px; right:0; bottom:50px; left:0;
+	top:100px; right:0; bottom:100px; left:0;
 
 	overflow:hidden;
 	overflow-y:auto;
@@ -138,6 +138,7 @@ html {
 
 	pointer-events:none;
 	overflow:hidden;
+	transition:all .3s;
 }
 .sidebar .person:before {
 	width:10px;
@@ -172,10 +173,11 @@ html {
 	content:"";
 }
 
-.sidebar .person.me {
+.sidebar .person.me,
+.sidebar .person.typing {
 	line-height:35px;
 }
-.sidebar .person.me:after {
+.sidebar .person:after {
 	width:auto;
 	height:25px;
 	display:block;
@@ -188,8 +190,18 @@ html {
 	text-align:left;
 
 	color:rgba(255,255,255,0.2);
-
+	opacity:0;
+	
+	content:"";
+	transition:all .3s;
+}
+.sidebar .person.me:after {
+	opacity:1;
 	content:"me";
+}
+.sidebar .person.typing:after {
+	opacity:1;
+	content:"typing ...";
 }
 
 .sidebar .person.blue {

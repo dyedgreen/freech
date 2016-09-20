@@ -19,6 +19,7 @@ class NetworkMessageType {
       HANDSHAKE: 0,
       MESSAGE: 1,
       LOADMESSAGES: 2,
+      STATUSUPDATE: 3,
     };
   }
 
@@ -29,6 +30,7 @@ class NetworkMessageType {
       REMOVEDMESSAGE: 11,
       USERLIST: 12,
       CHATEXPIRATION: 13,
+      USERSTATUS: 14,
     };
   }
 

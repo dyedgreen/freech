@@ -21,6 +21,7 @@ var freech = {
     expirationTime: null,
     expirationTimeLeft: 86400000,
     userList: [],
+    usersTyping: [],
     messages: [],
     sendingMessages: [],
     totalMessageCount: -1,
@@ -169,6 +170,9 @@ var freech = {
     var userIndex = freech.getIndexOfUser(userId);
     return userIndex !== -1 ? freech.tempData.userList[userIndex].name : '';
   },
+  getUserIsTyping: function(userId) {
+    return freech.tempData.usersTyping.indexOf(userId) !== -1;
+  },
 
   // Chat and User Creation / Data Management
   chatExists: function() {
@@ -285,6 +289,17 @@ var freech = {
     }
     return false;
   },
+  socketMessageUpdateStatus: function(status) {
+    if (freech.chatExists() && freech.chatUserExists()) {
+      try {
+        return JSON.stringify({
+          type: 3,
+          status: ''.concat(status),
+        });
+      } catch (e) {}
+    }
+    return false;
+  },
 
   // Socket data sending / reciving functions
   socketConnect: function(callbackOpen, callbackClose, callbackMessagesLoaded) {
@@ -338,6 +353,18 @@ var freech = {
                 }, 60000);
                 break;
               }
+              // User status updates
+              case 14: {
+                // Handle the status update (only 'typing' as of now)
+                if (dataObj.status == 'typing') {
+                  freech.tempData.usersTyping.push(dataObj.userId);
+                  setTimeout(function() {
+                    // Remove the typing status after 5 seconds
+                    freech.tempData.usersTyping.shift();
+                  }, 4000);
+                }
+                break;
+              }
               // The loaded old messages where recived (WILL CALL UI_UPDATE CALLBACK)
               case 20: {
                 // Store the old messages & the total message count
@@ -348,6 +375,10 @@ var freech = {
                 // Old messages callback
                 callbackMessagesLoaded(false);
                 break;
+              }
+              // Debug stuff
+              default: {
+                console.warn('Unknown message type:', data);
               }
             }
           } catch (e) {
@@ -393,6 +424,13 @@ var freech = {
         freech.tempData.loadingOldMessages = true;
         freech.tempData.socket.send(socketMessage);
       }
+    }
+  },
+  socketUpdateStatus: function(status) {
+    // Create the network message string
+    var socketMessage = freech.socketMessageUpdateStatus(status);
+    if (socketMessage && freech.tempData.connected) {
+      freech.tempData.socket.send(socketMessage);
     }
   },
 
@@ -661,6 +699,14 @@ var ui = {
     }
   },
 
+  // Event loop, that sends out a 'typing' status
+  loopDetectTyping: function() {
+    // If either image of text input
+    if (ui.input.newMessage.length + ui.input.newImage.length > 0) {
+      freech.socketUpdateStatus('typing');
+    }
+  },
+
 }
 
 
@@ -694,6 +740,11 @@ if (freech.chatExists() && freech.chatUserExists()) {
   ui.data.modals.newUser = false;
   ui.data.loading.full = false;
 }
+// Start any update loops
+setInterval(function() {
+  // Send typing events
+  ui.loopDetectTyping();
+}, 3000);
 
 
 // Timestamp filter, returns a formated time like 9:07
@@ -730,6 +781,8 @@ Vue.filter('userclass', function(value) {
   } catch (e) {}
   // Is this user offline?
   if (index !== -1) classlist = classlist.concat(' ').concat(freech.tempData.userList[index].connected ? 'online' : 'offline');
+  // It this user typing?
+  if (freech.getUserIsTyping(value)) classlist = classlist.concat(' typing');
   return classlist;
 });
 // Username filter, turns userIds into usernames
