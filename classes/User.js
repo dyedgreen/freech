@@ -10,8 +10,8 @@ const RandString = require('./RandString.js');
 /**
 * User
 *
-* Rerpesents a user and provides functions
-* to test user tocken hashes.
+* Can represent a user and provides functions
+* to test user token hashes.
 */
 class User {
 

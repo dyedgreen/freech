@@ -806,7 +806,7 @@ Vue.filter('message', function(value) {
       // Remove any punctuation at the end (as of now, this catches only one!)
       if (/[\.\,\;\:\-\–\…\?\!\/\(\)]$/i.test(url)) url = url.substr(0, url.length - 1);
       // Add the url to the array
-      valueArray.push('<a href="'.concat(url).concat('" target="_blank" rel="noopener">'));
+      valueArray.push('<a href="'.concat(url).concat('" target="_blank" rel="noopener noreferrer">'));
       valueArray.push(word);
       valueArray.push('</a>');
     } else {

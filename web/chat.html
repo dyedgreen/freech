@@ -4,11 +4,11 @@
 	<head>
 		<!-- Meta Stuff -->
 		<meta charset="utf-8">
-		<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+		<meta name="viewport" content="initial-scale=0.8, maximum-scale=0.8">
 		<!-- Title -->
 		<title>Freech - Chat</title>
 		<!-- Fonts & Css -->
-		<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
 		<link href="./css/chat.css" rel="stylesheet" type="text/css">
 	</head>
 
@@ -41,7 +41,7 @@
 				<span class="notice" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
 				<!-- The no messages indicator -->
 				<span class="notice" v-if="freechTemp.totalMessageCount === -1">No messages</span>
-				
+
 				<!-- The load old button -->
 				<a href="javascript:void(0)" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1" v-show="!freechTemp.loadingOldMessages"  class="button" v-on:click="buttonLoadOldMessages">Load Old Messages</a>
 
@@ -58,9 +58,9 @@
 					<!-- Simple Easter Egg -->
 					<img v-if="message.text === 'nogodsnomasters'" v-bind:src="'./images/no_gods-no_masters.png'">
 				</div>
-				
+
 				<!-- A sending message -->
-				<div v-for="message in freechTemp.sendingMessages" class="message">
+				<div v-for="message in freechTemp.sendingMessages" class="message sending">
 					<!-- Sending indication -->
 					<span>Sending ...</span>
 					<!-- Message text -->
@@ -114,7 +114,7 @@
 				<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
 			</div>
 		</div>
-		
+
 		<!-- Settings Modal -->
 		<div class="modal-bg" v-if="uiData.modals.settings" transition="modal">
 			<div class="modal">
@@ -174,7 +174,7 @@
 					<p>You can always create a new chat.</p>
 					<a href="/chat" class="button red">New Chat</a>
 				</span>
-			</div>		
+			</div>
 		</div>
 
 		<!-- Full Loading TODO: Make this nicer -->

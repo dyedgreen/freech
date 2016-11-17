@@ -14,7 +14,7 @@ const ChatManager = require('./ChatManager.js');
 * ChatServer
 *
 * This class creates the actual server that connects to
-* the reactions api, as well as serving static files from
+* the chat, as well as serving static files from
 * a specified directory.
 * A very, very simple HTTP(S) file server is included that
 * serves static files and supports the following special files:
@@ -35,8 +35,8 @@ class ChatServer {
     } else {
       // Load the SSL certificates
       const sslOptions = {
-        key: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.key')),
-        cert: fs.readFileSync(__dirname.replace('/classes', '/ssl').concat('/server.crt')),
+        key: fs.readFileSync(__dirname.replace('/classes', '/secret').concat('/server.key')),
+        cert: fs.readFileSync(__dirname.replace('/classes', '/secret').concat('/server.crt')),
       };
       // Open the server
       this.server = https.createServer(sslOptions);

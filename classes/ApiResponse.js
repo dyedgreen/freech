@@ -32,7 +32,7 @@ class ApiResponse {
       });
     } catch (e) {
       responseBody = '{"error":true,"data":null}';
-      responseError = false;
+      responseError = true;
     }
 
     // Send the response

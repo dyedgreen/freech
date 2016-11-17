@@ -18,7 +18,7 @@
 
 html {
 	background:#EEEFED;
-	
+
 	overflow-x:hidden;
 	overflow-y:auto;
 }
@@ -45,21 +45,21 @@ html {
 	height:500px;
 	display:block;
 	margin:25px auto 0 auto;
-	
-	font-family:'Lobster', 'Roboto', sans-serif;
+
+	font-family:'Montserrat', 'Roboto', sans-serif;
 	font-size:75px;
-	font-weight:900;
+	font-weight:700;
 	text-align:center;
 	text-shadow:0 5px #359AFF, 0 -5px #359AFF, 5px 0 #359AFF, -5px 0 #359AFF, 5px 5px #359AFF, -5px -5px #359AFF, 5px -5px #359AFF, -5px 5px #359AFF;
 	line-height:200px;
-	
+
 	border-radius:250px;
 	background-image:url(/images/pattern.svg);
 	background-position:left top;
 	background-repeat:repeat;
 	background-origin:border-box;
 	background-size:50px 50px;
-	
+
 	color:#EEEFED;
 }
 .header .screenshot {
@@ -68,7 +68,7 @@ html {
 	height:auto;
 	display:block;
 	margin:-325px auto 0 auto;
-	
+
 	border-radius:10px;
 	box-shadow:10px 10px rgba(0,0,0,0.3);
 }
@@ -92,10 +92,10 @@ html {
 	padding:25px;
 	display:block;
 	margin:25px auto;
-	
+
 	color:#fff;
 	border-radius:10px;
-	
+
 	overflow:hidden;
 	white-space:nowrap;
 }
@@ -105,14 +105,14 @@ html {
 	box-sizing:content-box;
 	display:inline-block;
 	margin:25px 50px 25px 25px;
-	
+
 	background:#fff;
 	background-image:url(/images/icons.svg);
 	background-size:75px 375px;
 	background-repeat:no-repeat;
 	box-shadow:0 0 0 25px rgba(0,0,0,0.2);
 	border-radius:100%;
-	
+
 	vertical-align:top;
 }
 .feature h1 {
@@ -120,13 +120,13 @@ html {
 	width:calc(100% - 125px);
 	height:125px;
 	display:inline-block;
-	
+
 	font-size:30px;
-	font-weight:600;
+	font-weight:700;
 	text-overflow:ellipsis;
 	text-transform:uppercase;
 	line-height:75px;
-	
+
 	vertical-align:top;
 	overflow:hidden;
 }
@@ -137,11 +137,11 @@ html {
 	min-height:25px;
 	display:block;
 	margin:-50px 0 25px 150px;
-	
+
 	font-size:20px;
 	font-weight:500;
 	line-height:25px;
-	
+
 	white-space:normal;
 }
 
@@ -152,18 +152,18 @@ html {
 	padding:25px;
 	display:block;
 	margin:0 -25px -25px -25px;
-	
+
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:25px;
 	text-decoration:none;
 	text-align:center;
 	text-transform:uppercase;
 	text-overflow:ellipsis;
-	
+
 	color:#fff;
 	background:rgba(0,0,0,0.2);
-	
+
 	overflow:hidden;
 	white-space:nowrap;
 	transition:.1s;
@@ -213,7 +213,7 @@ html {
 	height:auto;
 	padding:25px;
 	display:block;
-	
+
 	text-align:center;
 }
 .footer a {
@@ -221,13 +221,13 @@ html {
 	width:auto;
 	display:inline-block;
 	margin:0 10px;
-	
+
 	font-size:15px;
 	font-weight:400;
 	text-transform:capitalize;
 	text-decoration:none;
 	line-height:25px;
-	
+
 	color:#011627;
 }
 .footer a:hover {
@@ -241,10 +241,10 @@ html {
 		width:100%;
 		max-width:100%;
 		margin:0 auto;
-		
+
 		border-radius:0;
 	}
-	
+
 	.feature {
 		white-space:normal;
 	}
@@ -257,14 +257,14 @@ html {
 		height:auto;
 		padding:25px;
 		display:block;
-		
+
 		text-align:center;
 		line-height:30px;
 	}
 	.feature p {
 		width:100%;
 		margin:0 auto 25px auto;
-		
+
 		text-align:justify;
 	}
 }

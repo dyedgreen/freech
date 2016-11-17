@@ -18,6 +18,7 @@
 
 html {
 	background:#EEEFED;
+	overflow:hidden;
 }
 
 *::selection {
@@ -51,7 +52,7 @@ html {
 	display:block;
 
 	font-size:30px;
-	font-weight:600;
+	font-weight:700;
 	line-height:75px;
 	text-align:left;
 
@@ -69,7 +70,7 @@ html {
 	top:0; right:0; bottom:auto; left:0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:25px;
 	text-align:left;
 
@@ -86,7 +87,7 @@ html {
 	top:auto; right:0; bottom:0; left:0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:50px;
 	text-align:left;
 	text-transform:uppercase;
@@ -183,7 +184,7 @@ html {
 	display:block;
 	position:absolute;
 	top:25px; right:0; bottom:0; left:20px;
-	
+
 	font-size:15px;
 	font-weight:500;
 	line-height:20px;
@@ -191,7 +192,7 @@ html {
 
 	color:rgba(255,255,255,0.2);
 	opacity:0;
-	
+
 	content:"";
 	transition:all .3s;
 }
@@ -325,7 +326,7 @@ html {
 	top:0; right:0; bottom:0; left:auto;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:75px;
 	text-align:center;
 	text-transform:uppercase;
@@ -379,7 +380,7 @@ html {
 	top:0; right:0; bottom:0; left:0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:75px;
 	text-decoration:none;
 	text-align:center;
@@ -420,13 +421,13 @@ html {
 	display:block;
 
 	font-size:15px;
-	font-weight:600;
+	font-weight:700;
 	font-style:italic;
 	line-height:25px;
 	text-overflow:ellipsis;
 
 	color:rgba(0,0,0,0.2);
-	
+
 	white-space:nowrap;
 	overflow:hidden;
 }
@@ -449,7 +450,7 @@ html {
 .chat .messages .message > p a {
 	display:inline-block;
 
-	font-weight:600;
+	font-weight:700;
 	text-decoration:underline;
 
 	color:inherit;
@@ -476,6 +477,10 @@ html {
 
 .chat .messages .message.notme {
 	text-align:left;
+}
+.chat .messages .message.sending,
+.chat .messages .message-transition.sending {
+	opacity:0.5;
 }
 
 .chat .messages .message-transition {
@@ -553,7 +558,7 @@ html {
 	margin:0 0 25px 0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:50px;
 	text-decoration:none;
 	text-align:center;
@@ -574,7 +579,7 @@ html {
 	margin:0 auto 25px auto;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:50px;
 	text-decoration:none;
 	text-align:center;
@@ -647,7 +652,7 @@ html {
 	margin:25px 0 0 0;
 
 	font-size:25px;
-	font-weight:600;
+	font-weight:700;
 	line-height:30px;
 	text-align:left;
 	text-transform:capitalize;
@@ -684,7 +689,7 @@ html {
 	margin:25px 0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:25px;
 	text-align:left;
 	word-break:break-all;
@@ -703,7 +708,7 @@ html {
 	margin:0 -25px 0 -25px;
 
 	font-size:18px;
-	font-weight:600;
+	font-weight:700;
 	line-height:20px;
 	text-align:left;
 
@@ -771,13 +776,13 @@ html {
 	margin:15px 0 0 0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:25px;
 	text-align:left;
 	text-transform:capitalize;
 
 	color:rgba(0,0,0,0.5);
-	
+
 	cursor:pointer;
 }
 .modal label.checkbox::selection {
@@ -792,14 +797,14 @@ html {
 	display:block;
 	position:absolute;
 	top:0; right:auto; bottom:0; left:0;
-	
+
 	border-radius:5px;
 	background-image:url(/images/checkbox.svg);
 	background-position:12px 12px;
 	background-size:1px 1px;
 	background-repeat:no-repeat;
 	background-color:#EEEFED;
-	
+
 	content:"";
 	transition:all .1s;
 }
@@ -818,7 +823,7 @@ html {
 	margin:25px 0 0 0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:50px;
 	text-decoration:none;
 	text-align:center;
@@ -870,7 +875,7 @@ html {
 	top:0; right:0; bottom:0; left:0;
 
 	font-size:20px;
-	font-weight:600;
+	font-weight:700;
 	line-height:50px;
 	text-decoration:none;
 	text-align:center;
@@ -923,7 +928,7 @@ html {
 	top:0; right:0; bottom:0; left:0;
 
 	font-size:25px;
-	font-weight:600;
+	font-weight:700;
 	line-height:100vh;
 	text-align:center;
 	text-transform:capitalize;

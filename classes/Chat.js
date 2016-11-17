@@ -156,7 +156,7 @@ class Chat {
         }
         default: {
           // Log this event
-          Log.write(Log.INFO, 'Unknown message type');
+          Log.write(Log.WARNING, 'Unknown message type');
         }
       }
     } catch (e) {

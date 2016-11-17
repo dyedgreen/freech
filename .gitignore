@@ -1,3 +1,9 @@
+# Ignore log and system files
 .*
 *.log
-ssl/
+
+# Ignore the server secrets (e.g. ssl keys)
+secret/
+
+# Ignore the test file
+test.js
