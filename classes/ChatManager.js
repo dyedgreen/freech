@@ -8,6 +8,7 @@ const Log = require('./Log.js');
 const RandString = require('./RandString.js');
 const ApiResponse = require('./ApiResponse.js');
 const NetworkMessageType = require('./NetworkMessageType.js');
+const ChatData = require('./ChatData.js');
 const Chat = require('./Chat.js');
 
 /**
@@ -21,7 +22,7 @@ class ChatManager {
   constructor() {
     // Keep track of the server
     this.server = null;
-    // Keep track of all created chats
+    // Keep track of all currently open chats
     this.chats = [];
   }
 
@@ -69,30 +70,53 @@ class ChatManager {
   * @param {http.ServerResponse} res the response to write to
   */
   resolve(url, res) {
-    // Test if the request targets the chats endpoint (/api/chats/something)
+    // Test if the request targets the chats endpoint (/api/chats/something ...)
     if (url.path.length > 2 && url.path[1] == 'chat') {
       switch (url.path[2]) {
         case 'new': {
+          // Get the name
+          const name = url.data.hasOwnProperty('chatName') ? url.data.chatName : null;
           // Make a new chat
-          const chatId = this.createChat();
-          // Send the chat id to the client
-          ApiResponse.sendData(res, chatId, false);
+          Chat.createNewChat(name, chatId => {
+            // Send the chat id to the client (if this function fails, it will automatically return false)
+            ApiResponse.sendData(res, chatId, false);
+          });
           return;
           break;
         }
         case 'join': {
           // Get the users id & name
           if (
-            url.data.hasOwnProperty('chatId') && this.indexOfChat(url.data.chatId) !== -1 &&
+            url.data.hasOwnProperty('chatId') &&
             url.data.hasOwnProperty('userId') &&
             url.data.hasOwnProperty('userName')
           ) {
+            // Get the data
             const chatId = decodeURI(''.concat(url.data.chatId));
             const userId = decodeURI(''.concat(url.data.userId));
             const userName = decodeURI(''.concat(url.data.userName));
-            const userToken = this.chats[this.indexOfChat(chatId)].addUser(userId, userName);
-            // Send the user token back to the request
-            ApiResponse.sendData(res, userToken, !userToken);
+            // Get the chat / open it if its not allready open
+            const chatIndex = this.indexOfOpenChat(chatId);
+            if (chatIndex === -1) {
+              // Open the chat
+              this.openChat(chatId, success => {
+                // If the chat was opened, try to join, else abort
+                if (success) {
+                  // Join the chat
+                  const userToken = this.chats[this.indexOfOpenChat(chatId)].addUser(userId, userName);
+                  // Send the user token back to the request
+                  ApiResponse.sendData(res, userToken, !userToken);
+                } else {
+                  // Error response, could not be opened
+                  ApiResponse.sendData(res, null, true);
+                }
+              });
+            } else {
+              // Join the chat
+              const userToken = this.chats[chatIndex].addUser(userId, userName);
+              // Send the user token back to the request
+              ApiResponse.sendData(res, userToken, !userToken);
+            }
             return;
           }
           break;
@@ -125,48 +149,66 @@ class ChatManager {
         messageObj.hasOwnProperty('time')
       ) {
         // Try to find the chat
-        const chatIndex = this.indexOfChat(messageObj.chatId);
+        const chatIndex = this.indexOfOpenChat(messageObj.chatId);
         if (chatIndex !== -1) {
           // Connect to the chat
           this.chats[chatIndex].connectUser(socket, messageObj.userId, messageObj.hash, messageObj.time);
-          return;
+        } else {
+          // Try to open the chat and connect to the chat after it was opened
+          this.openChat(messageObj.chatId, success => {
+            if (success) {
+              // Connect to the chat
+              this.chats[this.indexOfOpenChat(messageObj.chatId)].connectUser(socket, messageObj.userId, messageObj.hash, messageObj.time);
+            } else {
+              // Close the socket
+              socket.close();
+            }
+          });
         }
+      } else {
+        // Close the socket
+        socket.close();
       }
     } catch (e) {
       // Something went downhill; TODO: Log this!
     }
-    // General error handling (aborted by return on success)
-    socket.close();
   }
 
   /**
-  * createChat() creates a new
-  * chat and adds it to the
-  * chat list, managed by this
-  * instance.
-  * It returns the chats id.
+  * openChat() is the creator
+  * function, that instantiates a
+  * chat in the memory. It will also
+  * scheudule an automatic destruction.
   *
-  * @return {string}
+  * @param {string} chatId
+  * @param {function} callback
   */
-  createChat() {
-    // Create the chat
-    const newChat = new Chat(chatId => {
-      this.destructChat(chatId);
+  openChat(chatId, callback) {
+    // Load the chat from memory
+    ChatData.chatGetData(chatId, data => {
+      if (data) {
+        // Create the chat and add it to the chat list
+        this.chats.push(new Chat(data, chatId => {
+          this.closeChat(chatId);
+        }));
+        callback(true);
+      } else {
+        // The chat loading failed
+        callback(false);
+      }
     });
-    this.chats.push(newChat);
-    return newChat.id;
   }
 
   /**
-  * destructChat() is the destructor
+  * closeChat() is the destructor
   * function that is passed to each
   * chat instance to clean itself
-  * up, once it expires.
+  * up, once everyone disconnects.
   *
   * @param {string} chatId
   */
-  destructChat(chatId) {
-    const chatIndex = this.indexOfChat(chatId);
+  closeChat(chatId) {
+    const chatIndex = this.indexOfOpenChat(chatId);
     if (chatIndex !== -1) {
       // Delete the chat
       this.chats.splice(chatIndex, 1);
@@ -182,7 +224,7 @@ class ChatManager {
   * @param {string} chatId
   * @return {number}
   */
-  indexOfChat(chatId) {
+  indexOfOpenChat(chatId) {
     // Try to find the requested chat
     for (let i = 0; i < this.chats.length; i ++) {
       if (this.chats[i].id === chatId) return i;

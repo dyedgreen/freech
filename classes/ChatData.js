@@ -6,7 +6,7 @@ const Db = require('./Db.js');
 const Log = require('./Log.js');
 
 // The self-contained data store and store mode
-let storeMode = ChatData.store.SELFCONTAINED;
+let storeMode = 0;
 let localDataStore = {
   chats: {},
   messages: {},
@@ -36,6 +36,8 @@ let localDataStore = {
 *
 * Attachments:
 * chatId -> { id(is the id of the message) } -> data
+*
+* TODO: Add logging !
 */
 class ChatData {
 
@@ -80,10 +82,10 @@ class ChatData {
     }
   }
 
-  static chatCreate(id, name, callback) {
+  static chatCreate(chatId, name, callback) {
     switch(storeMode) {
       case ChatData.SELFCONTAINED: {
-        ChatData.selfContainedChatCreate(id, name, callback);
+        ChatData.selfContainedChatCreate(chatId, name, callback);
         break;
       }
       case ChatData.MONGODB: {
@@ -92,7 +94,7 @@ class ChatData {
       }
       default: {
         // Selfcontained is the standard
-        ChatData.selfContainedChatCreate(id, name, callback);
+        ChatData.selfContainedChatCreate(chatId, name, callback);
       }
     }
   }
@@ -211,21 +213,21 @@ class ChatData {
   }
 
   // Store the data for a new chat / create it's data set
-  selfContainedChatCreate(id, name, callback) {
+  static selfContainedChatCreate(chatId, name, callback) {
     // Test if chat already exists (and stop creatin if it does)
     if (!localDataStore.chats.hasOwnProperty(chatId)) {
       // Set up the data obj
       const chatData = {
-        id,
+        id: chatId,
         name,
         messageCount: 0,
         users: [],
       };
       // Push them to the data store
-      localDataStore.chats[chatId](chatData);
+      localDataStore.chats[chatId] = chatData;
       // Create the holders for the messages and the attachment data
-      localDataStore.messages[id] = [];
-      localDataStore.attachments[id] = {};
+      localDataStore.messages[chatId] = [];
+      localDataStore.attachments[chatId] = {};
       // Chat was created!
       callback(true);
     } else {
@@ -235,7 +237,7 @@ class ChatData {
   }
 
   // Delete the data for one chat / remove a given chat
-  selfContainedChatDelete(chatId, callback) {
+  static selfContainedChatDelete(chatId, callback) {
     // Find the chat in the data
     if (localDataStore.chats.hasOwnProperty(chatId)) {
       // Clear the chat data
@@ -252,11 +254,12 @@ class ChatData {
   }
 
   // Add a user data obj to the chat (must be supplied correctely from the chat class)
-  selfContainedChatAddUser(chatId, userData, callback) {
+  static selfContainedChatAddUser(chatId, userData, callback) {
     // Try to find the chat
     if (localDataStore.chats.hasOwnProperty(chatId)) {
-      // Add the users data
-      localStorageDataStore.chats[chatId].users.push(userData);
+      // Add the users data (As this is a copy, directely linked to the in-process data for self
+      // contained service, this does not need to be added!)
+      // localDataStore.chats[chatId].users.push(userData);
       // Success!
       callback(true);
     } else {
@@ -266,7 +269,7 @@ class ChatData {
   }
 
   // Store a message (and its attached image, if supplied)
-  selfContainedMessagesAddMessage(chatId, messageData, messageAttachment, callback) {
+  static selfContainedMessagesAddMessage(chatId, messageData, messageAttachment, callback) {
     // Fetch the chat
     if (localDataStore.chats.hasOwnProperty(chatId)) {
       // Add the message to the messages array
@@ -285,8 +288,8 @@ class ChatData {
     }
   }
 
-  // Return a bunch of old messages
-  selfContainedMessagesGetOld(chatId, count, lastMessageId, callback) {
+  // Return a bunch of old messages (also returns the number of total messages!)
+  static selfContainedMessagesGetOld(chatId, count, lastMessageId, callback) {
     // Test if chat exists
     if (localDataStore.chats.hasOwnProperty(chatId)) {
       // Find the cound older messages or the count latest, if lastMessageId is no string
@@ -295,18 +298,18 @@ class ChatData {
         callback(localDataStore.messages[chatId].slice(-count));
       } else {
         // Find the lastMessageId message and return the cound older messages
-        let returnMessages = [];
+        let messages = [];
         let pastLastMessage = false;
         // Start counting at end
-        for (let i = localDataStore.chats[chatId].messageCount - 1; i >= 0 && returnMessages.length < count; i --) {
+        for (let i = localDataStore.chats[chatId].messageCount - 1; i >= 0 && messages.length < count; i --) {
           if (pastLastMessage) {
-            returnMessages.unshift(localDataStore.messages[chatId][i]);
+            messages.unshift(localDataStore.messages[chatId][i]);
           } else {
             if (localDataStore.messages[chatId][i].id == lastMessageId) pastLastMessage = true;
           }
         }
         // Return the found messages
-        callback(returnMessages);
+        callback(messages);
       }
     } else {
       // No chat there
@@ -315,7 +318,7 @@ class ChatData {
   }
 
   // Pipe the attachment data through a socket, if the data exists
-  selfContainedAttachmentsPipeImage(chatId, messageId, writeStream) {
+  static selfContainedAttachmentsPipeImage(chatId, messageId, writeStream) {
     // Find chat
     if (localDataStore.chats.hasOwnProperty(chatId)) {
       // Find the attachment

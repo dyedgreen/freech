@@ -29,8 +29,7 @@ class NetworkMessageType {
       NEWMESSAGE: 10,
       REMOVEDMESSAGE: 11,
       USERLIST: 12,
-      CHATEXPIRATION: 13,
-      USERSTATUS: 14,
+      USERSTATUS: 13,
     };
   }
 

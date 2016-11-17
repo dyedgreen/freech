@@ -4,6 +4,7 @@
 // Imports
 const Log = require('./Log.js');
 const RandString = require('./RandString.js');
+const ChatData = require('./ChatData.js');
 const User = require('./User.js');
 const NetworkMessageType = require('./NetworkMessageType.js');
 
@@ -14,17 +15,20 @@ const NetworkMessageType = require('./NetworkMessageType.js');
 * provides the functions necessary to modify the chat (e.g. add
 * users, set users as online / offline).
 * The chat class also manages all connections to the chat.
+*
+* The message data is loaded from the external ChatData source.
 */
 class Chat {
 
-  constructor(destructor) {
-    // Create the chat id
-    this.id = RandString.medium;
+  constructor(chatData, destructor) {
+    // Get the chat id and name
+    this.id = chatData.id;
+    this.name = chatData.name;
     // Set up the needed data structure
-    this.users = [];
-    this.messages = [];
+    this.users = chatData.users;
+    this.messageCount = chatData.messageCount;
     this.connections = [];
-    // Schedule destructor
+    // Schedule destructor (to auto-close chat after x-time, if no users are connected)
     this.destructor = { time: null, callback: destructor };
     this.scheduleDestructor();
     // Log about this
@@ -48,7 +52,7 @@ class Chat {
     // Test if the user is valid
     if (
       userIndex !== -1 && // User is registered
-      this.users[userIndex].testHash(tokenHash, time) // The supplied token hash was valid
+      User.testHash(this.users[userIndex].token, tokenHash, time) // The supplied token hash was valid
     ) {
       // If this user has an open connection, close it
       if (this.indexOfConnectedUser(userId) !== -1) this.disconnectUser(userId);
@@ -66,12 +70,9 @@ class Chat {
       });
       // Update everyones user list
       this.pushUserList();
-      // Send the user the current chat expiration time (will probably not change, but might in a future update)
-      this.sendChatExpirationTime(socket);
       // Log about the event
       Log.write(Log.INFO, 'User connected with id', userId);
     } else {
-      console.log(userIndex, this.indexOfConnectedUser(userId), this.users[userIndex].testHash(tokenHash, time));
       setImmediate(() => {
         // Close the socket
         socket.close();
@@ -96,6 +97,13 @@ class Chat {
       this.connections[connectionIndex].socket.close();
       // Remove the user from the connection list
       this.connections.splice(connectionIndex, 1);
+      // If the chat is now empty, destruct it automatically
+      if (this.connections.length === 0) {
+        // Will scheudle an immediate destruction
+        this.scheduleDestructor(0);
+        Log.write(Log.DEBUG, 'Chat destructed on disconnect');
+        return;
+      }
       // Update everyones user list
       this.pushUserList();
       // Log about the event
@@ -160,6 +168,7 @@ class Chat {
         }
       }
     } catch (e) {
+      console.log(e);
       Log.write(Log.WARNING, 'Could not parse JSON of network message send by', userId);
     }
     // Log about this
@@ -181,57 +190,25 @@ class Chat {
   * @param {number} offset
   */
   sendMessages(socket, count, lastMessageId) {
-    // Get the last message index (will be excluded)
-    let lastMessageIndex = this.indexOfMessage(lastMessageId);
-    if (lastMessageIndex === -1) lastMessageIndex = this.messages.length;
-    // Count back to the wanted index
-    let startMessageIndex = count > lastMessageIndex ? 0 : lastMessageIndex - count;
-    // Find the messages in the message data if some where requested
-    if (startMessageIndex < lastMessageIndex) {
-      // Keep a clean event loop
-      setImmediate(() => {
-        // Get the messages
-        const messages = this.messages.slice(startMessageIndex, lastMessageIndex);
-        const totalMessageCount = this.messages.length;
-        // Send the messages to the socket
-        const socketResponse = {
-          type: NetworkMessageType.DATA.MESSAGELIST,
-          messages,
-          totalMessageCount,
-        };
-        try {
-          socket.send(JSON.stringify(socketResponse));
-        } catch (e) {
-          // Tell the log about the error
-          Log.write(Log.ERROR, 'Could not send messages to user');
-        }
-      });
-      Log.write(Log.DEBUG, `Sending ${count} messages to a connected user`);
-    }
-  }
-
-  /**
-  * sendChatExpirationTime()
-  * forwards the current
-  * chat expiration time
-  * to a given socket.
-  *
-  * @param {socket} socket
-  */
-  sendChatExpirationTime(socket) {
-    // Keep a clean event loop
-    setImmediate(() => {
-      // Build the message
-      const socketMessage = {
-        type: NetworkMessageType.UPDATE.CHATEXPIRATION,
-        expirationTime: this.destructor.time,
-      };
-      // Send the message to the user
-      try {
-        socket.send(JSON.stringify(socketMessage));
-      } catch (e) {
-        // There was a problem
-        Log.write(Log.ERROR, 'Could not send chat expiration time to user');
+    // Get the last messages from the data
+    ChatData.messagesGetOld(this.id, count, lastMessageId == '' ? false : lastMessageId, messages => {
+      if (messages) {
+        // Keep a clean event loop
+        setImmediate(() => {
+          // Send the messages to the socket
+          const socketResponse = {
+            type: NetworkMessageType.DATA.MESSAGELIST,
+            messages: messages,
+            totalMessageCount: this.messageCount,
+          };
+          try {
+            socket.send(JSON.stringify(socketResponse));
+          } catch (e) {
+            // Tell the log about the error
+            Log.write(Log.ERROR, 'Could not send messages to user');
+          }
+        });
+        Log.write(Log.DEBUG, `Sending ${count} messages to a connected user`);
       }
     });
   }
@@ -243,32 +220,27 @@ class Chat {
   *
   * @param {string} messageId
   */
-  pushNewMessage(messageId) {
+  pushNewMessage(message) {
     setImmediate(() => {
-      // Find the message
-      const messageIndex = this.indexOfMessage(messageId);
-      if (messageIndex !== -1) {
-        // Send the message to all connected users
-        try {
-          const message = this.messages[messageIndex];
-          const totalMessageCount = this.messages.length;
-          const socketMessage = {
-            type: NetworkMessageType.UPDATE.NEWMESSAGE,
-            message,
-            totalMessageCount,
-          };
-          const socketMessageString = JSON.stringify(socketMessage);
+      // Send the message to all connected users
+      try {
+        const totalMessageCount = this.messageCount;
+        const socketMessage = {
+          type: NetworkMessageType.UPDATE.NEWMESSAGE,
+          message,
+          totalMessageCount,
+        };
+        const socketMessageString = JSON.stringify(socketMessage);
 
-          this.connections.forEach(conn => {
-            // Send the messages, by registering each send in the event loop
-            setImmediate(() => {
-              conn.socket.send(socketMessageString);
-            });
+        this.connections.forEach(conn => {
+          // Send the messages, by registering each send in the event loop
+          setImmediate(() => {
+            conn.socket.send(socketMessageString);
           });
-        } catch (e) {
-          // Tell the log about the error
-          Log.write(Log.ERROR, 'Could not send new message to connected users');
-        }
+        });
+      } catch (e) {
+        // Tell the log about the error
+        Log.write(Log.ERROR, 'Could not send new message to connected users');
       }
     });
     // Log about this event
@@ -314,6 +286,9 @@ class Chat {
     Log.write(Log.DEBUG, 'Pushing new user list to all connected users');
   }
 
+  /**
+  * TODO: comment needed
+  */
   pushUserStatus(status, userId) {
     setImmediate(() => {
       // Send the new status to everyone (exept the emitting user, to preserve network bandwith)
@@ -368,19 +343,25 @@ class Chat {
       typeof messageImage === 'string' &&
       messageText.length + messageImage.length > 0 && // Either an image or a text or both
       messageImage.length <= 1000000 && // Max image size (images are downscaled on client side)
-      this.users[userIndex].testHash(tokenHash, time)
+      User.testHash(this.users[userIndex].token, tokenHash, time)
     ) {
-      // The Message seems valid, add it
-      const id = RandString.short;
-      this.messages.push({
-        id,
+      // The Message seems valid, create it
+      const newMessage = {
+        id: RandString.short,
         text: messageText.length > 0 ? messageText.substr(0, 2000) : false, // Current message length limit, be sure to warn on client side!
-        image: messageImage.length > 0 ? messageImage : false,
+        attachment: messageImage.length > 0 ? 1 : 0, // The attachment type, 0 = none, 1 = image
         userId: userId,
         time: time,
+      };
+      // Store it
+      ChatData.messagesAddMessage(this.id, newMessage, messageImage.length > 0 ? messageImage : false, success => {
+        if (success) {
+          // Increment the message count
+          this.messageCount ++;
+          // Catch everone up on this exiting news
+          this.pushNewMessage(newMessage);
+        }
       });
-      // Catch everone up on this exiting news
-      this.pushNewMessage(id);
       // Return true
       return true;
     }
@@ -404,8 +385,25 @@ class Chat {
     if (userIndex === -1) {
       // Test the user id & name
       if (User.validateId(userId) && User.validateName(userName)) {
-        // Add the user
-        const newUser = new User(userId, userName);
+        // Create the user Data
+        const newUser = {
+          id: userId,
+          name: userName.substr(0, 50),
+          token: User.generateToken(),
+        };
+        // Store change to memory
+        setImmediate(() => {
+          ChatData.chatAddUser(this.id, newUser, success => {
+            if (success) {
+              // Log about this
+              Log.write(Log.DEBUG, 'New user stored with id', userId);
+            } else {
+              // TODO: Remove user from local runtime here!
+              Log.write(Log.ERROR, 'Could not store user with id', userId);
+            }
+          });
+        });
+        // Store user locally / on runtime
         this.users.push(newUser);
         // Update everyones user list
         this.pushUserList();
@@ -471,29 +469,80 @@ class Chat {
 
   /**
   * rescheduleDestructor() sets
-  * the destructor timeout to 24h from
-  * now (can not be updated later!).
+  * the destructor timeout to 30min from
+  * now (can not be updated later, but can
+  * be skipped by scheuduleing a new desctuctor
+  * with a shorter timeout e.g. 0).
+  *
+  * Notice that this function has been updated
+  * in the new version to only remove the
+  * chat from being OPEN (will also be triggered
+  * if the last user dissconnects to preverve working
+  * memory).
+  *
+  * Notice that the destruction will NOT take place, if
+  * the chat is actively used e.g. there are people
+  * connected.
   *
   * @param {number} chatAge
   */
-  scheduleDestructor(chatAge = 86400000) {
+  scheduleDestructor(chatAge = 180000) {
     // Set a new distructor timeout
     setTimeout(() => {
-      // Log about this
-      Log.write(Log.DEBUG, 'Destructing chat with id', this.id);
-      // Disconnect all clients
-      this.connections.forEach(conn => {
-        this.disconnectUser(conn.userId);
-      });
-      // Call the destructor callback (the destructor is passed the chats id)
-      setImmediate(() => {
-        this.destructor.callback(this.id);
-      });
+      try {
+        if (this.connections.length === 0) {
+          // Log about this
+          Log.write(Log.DEBUG, 'Destructing chat with id', this.id);
+          // Call the destructor callback (the destructor is passed the chats id)
+          setImmediate(() => {
+            this.destructor.callback(this.id);
+          });
+        }
+      } catch (e) {
+        // This is to prevent chat destruction errors, if the chat was already destructed
+      }
     }, chatAge); // 24 h / one day, if standard
     // Store the time at which it will happen
     this.destructor.time = Date.now() + chatAge;
     // Log about this
     Log.write(Log.DEBUG, 'Chat destructor scheduled for chat with id / time:', this.id, '/', this.destructor.time);
+  }
+
+  /**
+  * THE FOLLOWING FUNCTIONS ARE STATIC AND TO BE USED
+  * BY THE CHAT MANAGER TO INVOKE NON-RUNTIME EVENTS
+  * LIKE CHAT CREATION.
+  */
+
+  /**
+  * createNewChat() creates a new
+  * chat from scratch, using an
+  * optional name.
+  * The chat id is handed back
+  * using a callback, if successful.
+  *
+  * @param {string} name
+  * @param {function} callback
+  */
+  static createNewChat(name, callback) {
+    // Keed a clean event loop
+    setImmediate(() => {
+      // Create name and id
+      const chatId = RandString.medium;
+      const chatName = typeof name === 'string' && name.length > 0 ? name.substr(0, 50) : 'Chat';
+      // Create the chat record
+      ChatData.chatCreate(chatId, chatName, success => {
+        if (success) {
+          // Chat creation went smoothly
+          callback(chatId);
+          Log.write(Log.INFO, 'New chat created');
+        } else {
+          // Error
+          callback(false);
+          Log.write(Log.WARNING, 'Chat creation failed');
+        }
+      });
+    });
   }
 
 }

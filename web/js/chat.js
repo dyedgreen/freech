@@ -318,6 +318,7 @@ var freech = {
           callbackClose();
         });
         socket.on('message', function(data) {
+          console.log(data);
           // Store the incoming data
           try {
             var dataObj = JSON.parse(data);
@@ -339,22 +340,8 @@ var freech = {
                 freech.tempData.userList = dataObj.userList;
                 break;
               }
-              // The chat expiration data was recived
-              case 13: {
-                // Store the chat expiration
-                freech.tempData.expirationTime = dataObj.expirationTime;
-                // Add an expiration element to the local data & store it
-                freech.data.expirationTimes.push({ time: dataObj.expirationTime, chatId: freech.tempData.chatId });
-                freech.dataStore();
-                // Update the countdown requraly from now on
-                freech.dataUpdateExpirationTime();
-                setInterval(function() {
-                  freech.dataUpdateExpirationTime();
-                }, 60000);
-                break;
-              }
               // User status updates
-              case 14: {
+              case 13: {
                 // Handle the status update (only 'typing' as of now)
                 if (dataObj.status == 'typing') {
                   freech.tempData.usersTyping.push(dataObj.userId);
@@ -371,7 +358,7 @@ var freech = {
                 freech.tempData.messages = dataObj.messages.concat(freech.tempData.messages);
                 freech.tempData.totalMessageCount = dataObj.totalMessageCount;
                 // Set the old-messages loading to done (if there are more messages to be loaded)
-                if (dataObj.totalMessageCount >= freech.tempData.messages.length) freech.tempData.loadingOldMessages = false;
+                if (dataObj.totalMessageCount > freech.tempData.messages.length) freech.tempData.loadingOldMessages = false;
                 // Old messages callback
                 callbackMessagesLoaded(false);
                 break;

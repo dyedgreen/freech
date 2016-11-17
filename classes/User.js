@@ -10,19 +10,10 @@ const RandString = require('./RandString.js');
 /**
 * User
 *
-* Can represent a user and provides functions
+* Provides functions
 * to test user token hashes.
 */
 class User {
-
-  constructor(userId, userName) {
-    // Store the data
-    this.id = userId || '';
-    this.name = userName.substr(0, 50) || ''; // A users name can not be longer than 50 chars!
-    this.token = User.generateToken();
-    // Log about this
-    Log.write(Log.DEBUG, 'User created with name / id / token:', this.name, '/', this.id, '/', this.token);
-  }
 
   /**
   * testHash() checks a supplied
@@ -36,12 +27,12 @@ class User {
   * @param {number} time the unix time (milliseconds) at which the hash was created
   * @return {bool}
   */
-  testHash(hash = '', time = 0) {
+  static testHash(token = '', hash = '', time = 0) {
     // Test age
     if (time < Date.now() - 60000) return false;
     // Test the hash
     const sha256 = crypto.createHash('sha256');
-    sha256.update(this.token.concat(time));
+    sha256.update(token.concat(time));
     return sha256.digest('hex') == hash;
   }
 
@@ -72,6 +63,7 @@ class User {
   * a users name is valid.
   *
   * @param {string} userName
+  * @return {bool}
   */
   static validateName(userName) {
     // The users name must be a string, must not be empty, must not consist of only whitespace characters
