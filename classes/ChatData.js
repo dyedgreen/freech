@@ -317,12 +317,16 @@ class ChatData {
     }
   }
 
-  // Pipe the attachment data through a socket, if the data exists
+  // Pipe the attachment data through a socket, if the data exists (for an image attachment)
   static selfContainedAttachmentsPipeImage(chatId, messageId, writeStream) {
     // Find chat
     if (localDataStore.chats.hasOwnProperty(chatId)) {
       // Find the attachment
       if (localDataStore.attachments[chatId].hasOwnProperty(messageId)) {
+        // Set the appropriate headers
+        writeStream.writeHead(200, {
+          'Content-type': 'data:image',
+        });
         // Return the data to the stream
         writeStream.end(localDataStore.attachments[chatId][messageId]);
       }
@@ -330,6 +334,17 @@ class ChatData {
       // Close the stream
       stream.end();
     }
+  }
+
+  /**
+  * imageBlogFromDataUri() converts a
+  * data uri image, as send by the
+  * client, into a image file string.
+  *
+  * @param {string} dataUri
+  */
+  static imageStringFromDataUri(dataUri) {
+    return dataUri.replace('data:image/png;base64,', '');
   }
 
   /**

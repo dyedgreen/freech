@@ -16,7 +16,7 @@ class NetworkMessageType {
   // Message types send by user
   static get USER() {
     return {
-      HANDSHAKE: 0,
+      HANDSHAKE: 0, /*NOTICE: SERVER HANDSHAKE IS 0 AS WELL*/
       MESSAGE: 1,
       LOADMESSAGES: 2,
       STATUSUPDATE: 3,
@@ -26,6 +26,7 @@ class NetworkMessageType {
   // Message types pushed by server
   static get UPDATE() {
     return {
+      HANDSHAKE: 0, /*NOTICE: CLIENT HANDSHAKE IS 0 AS WELL*/
       NEWMESSAGE: 10,
       REMOVEDMESSAGE: 11,
       USERLIST: 12,

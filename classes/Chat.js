@@ -29,7 +29,7 @@ class Chat {
     this.messageCount = chatData.messageCount;
     this.connections = [];
     // Schedule destructor (to auto-close chat after x-time, if no users are connected)
-    this.destructor = { time: null, callback: destructor };
+    this.destructor = { timeout: null, callback: destructor };
     this.scheduleDestructor();
     // Log about this
     Log.write(Log.INFO, 'Chat created with id', this.id);
@@ -70,6 +70,8 @@ class Chat {
       });
       // Update everyones user list
       this.pushUserList();
+      // Send the user the chat-specific data (handshake)
+      this.pushHandshake(userId);
       // Log about the event
       Log.write(Log.INFO, 'User connected with id', userId);
     } else {
@@ -287,7 +289,15 @@ class Chat {
   }
 
   /**
-  * TODO: comment needed
+  * pushUserStatus() sends a
+  * new status for a given user
+  * to every connected user.
+  * Currently this one-way
+  * stateless transmition is
+  * used for typing indication.
+  *
+  * @param {string} status
+  * @param {string} userId
   */
   pushUserStatus(status, userId) {
     setImmediate(() => {
@@ -313,6 +323,36 @@ class Chat {
     });
     // Log this
     Log.write(Log.DEBUG, 'Pushing new user status to all connected users');
+  }
+
+  /**
+  * pushHandshake() sends
+  * the handshake to the
+  * specified user.
+  * Currently, the handshake
+  * contains the chats name.
+  *
+  * @param {string} userId
+  */
+  pushHandshake(userId) {
+    setImmediate(() => {
+      // Send the handshake to the specified user, may later contain more information
+      try {
+        const socketMessage = {
+          type: NetworkMessageType.UPDATE.HANDSHAKE,
+          chatName: this.name,
+        };
+        const socketMessageString = JSON.stringify(socketMessage);
+        // Find the specified user
+        const userIndex = this.indexOfConnectedUser(userId);
+        if (userIndex !== -1) this.connections[userIndex].socket.send(socketMessageString);
+      } catch (e) {
+        // Log the error
+        Log.write(Log.ERROR, 'Could not send user handshake');
+      }
+    });
+    // Log this
+    Log.write(Log.DEBUG, 'Pushing new handshake to user');
   }
 
   /**
@@ -472,7 +512,7 @@ class Chat {
   * the destructor timeout to 30min from
   * now (can not be updated later, but can
   * be skipped by scheuduleing a new desctuctor
-  * with a shorter timeout e.g. 0).
+  * with a different timeout e.g. 0).
   *
   * Notice that this function has been updated
   * in the new version to only remove the
@@ -487,8 +527,10 @@ class Chat {
   * @param {number} chatAge
   */
   scheduleDestructor(chatAge = 180000) {
+    // Stop the existing timeout (if applicable)
+    if (this.destructor.timeout !== null) clearTimeout(this.destructor.timeout);
     // Set a new distructor timeout
-    setTimeout(() => {
+    this.destructor.timeout = setTimeout(() => {
       try {
         if (this.connections.length === 0) {
           // Log about this
@@ -497,15 +539,15 @@ class Chat {
           setImmediate(() => {
             this.destructor.callback(this.id);
           });
+        } else {
+          Log.write(Log.DEBUG, 'Will not destruct chat');
         }
       } catch (e) {
         // This is to prevent chat destruction errors, if the chat was already destructed
       }
     }, chatAge); // 24 h / one day, if standard
-    // Store the time at which it will happen
-    this.destructor.time = Date.now() + chatAge;
     // Log about this
-    Log.write(Log.DEBUG, 'Chat destructor scheduled for chat with id / time:', this.id, '/', this.destructor.time);
+    Log.write(Log.DEBUG, 'Chat destructor scheduled for chat with id', this.id);
   }
 
   /**

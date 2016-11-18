@@ -7,19 +7,17 @@ var freech = {
   // Data, that is stored permanentely
   data: {
     users: {},
-    expirationTimes: [],
     settings: {
       notifications: false,
       loadMessagesOnScroll: true,
     },
-    v: 1,
+    v: 2,
   },
 
   // Data that is loaded on runtime
   tempData: {
     chatId: '',
-    expirationTime: null,
-    expirationTimeLeft: 86400000,
+    chatName: 'Chat',
     userList: [],
     usersTyping: [],
     messages: [],
@@ -30,7 +28,7 @@ var freech = {
     connected: false,
   },
 
-  // Function that loads the current data (for useres & expiration times)
+  // Function that loads the current data (for useres & chats)
   dataLoad: function() {
     // Note about localStorageSafe: If localStorage is not implemented / has no length, this will use cookies instead
     var dataStored = localStorageSafe.getItem('freechData');
@@ -41,18 +39,6 @@ var freech = {
         // Test if the data model has been updated
         if (loadedData.hasOwnProperty('v') && loadedData.v === freech.data.v) {
           freech.data = loadedData;
-          // Clean all old useres
-          var newExpirationTimes = [];
-          freech.data.expirationTimes.forEach(function(expirationData, index) {
-            if (expirationData.time < Date.now()) {
-              // Delete the old user data
-              delete freech.data.users[expirationData.chatId];
-            } else {
-              // Push the user to new expiration times
-              newExpirationTimes.push(expirationData);
-            }
-          });
-          freech.data.expirationTimes = newExpirationTimes;
         }
         return freech.dataStore();
       } catch (e) {}
@@ -187,9 +173,11 @@ var freech = {
     // Return the id of the user (if present)
     return freech.chatUserExists() ? freech.data.users[freech.tempData.chatId].id : '';
   },
-  chatCreateNew: function(callback) {
+  chatCreateNew: function(chatName, callback) {
     // Create a new chat, calls the callback, once done (w. success / error)
-    Vue.http.get('/api/chat/new').then(function(res) {
+    var url = '/api/chat/new';
+    url = url.concat('?chatName='.concat(encodeURI(chatName)));
+    Vue.http.get(url).then(function(res) {
       if (!res.json().error) {
         // Store the data
         freech.tempData.chatId = res.json().data;
@@ -223,8 +211,6 @@ var freech = {
           // Store the data
           user.token = res.json().data;
           freech.data.users[freech.tempData.chatId] = user;
-          // Add safeguard-expiration
-          freech.data.expirationTimes.push({ time: Date.now() + 86400000, chatId: freech.tempData.chatId });
           // Fix state
           freech.dataStore();
           // Call the callback
@@ -312,17 +298,23 @@ var freech = {
       socket.on('open', function() {
         // Register the callbacks
         socket.on('close', function() {
-          // Mark the connection as closed, update the expiration time and hit the callback
+          // Mark the connection as closed and hit the callback
           freech.tempData.connected = false;
-          freech.dataUpdateExpirationTime();
           callbackClose();
         });
         socket.on('message', function(data) {
+          // Log the data (is often handy for debugging)
           console.log(data);
           // Store the incoming data
           try {
             var dataObj = JSON.parse(data);
             switch (dataObj.type) {
+              // The server handshake was recived (contains the chats name)
+              case 0: {
+                // Store the chat name
+                freech.tempData.chatName = dataObj.chatName;
+                break;
+              }
               // New messages was pushed by the server (WILL CALL UI_UPDATE CALLBACK)
               case 10: {
                 // Store the message & the new total message count
@@ -332,6 +324,8 @@ var freech = {
                 if (dataObj.message.userId === freech.chatUserId()) freech.tempData.sendingMessages.shift();
                 // Hit the ui update callback
                 callbackMessagesLoaded(true);
+                // Load the image-attachments from the server
+                freech.attachmentGetImages();
                 break;
               }
               // New user-list was recived
@@ -361,6 +355,8 @@ var freech = {
                 if (dataObj.totalMessageCount > freech.tempData.messages.length) freech.tempData.loadingOldMessages = false;
                 // Old messages callback
                 callbackMessagesLoaded(false);
+                // Load the image-attachments from the server
+                freech.attachmentGetImages();
                 break;
               }
               // Debug stuff
@@ -421,9 +417,22 @@ var freech = {
     }
   },
 
-  // Application runtime / data-update functions
-  dataUpdateExpirationTime: function() {
-    freech.tempData.expirationTimeLeft = typeof freech.tempData.expirationTime === 'number' ? freech.tempData.expirationTime - Date.now() : 86400000;
+  attachmentGetImages: function() {
+    // Go through all messages and request the missing images
+    freech.tempData.messages.forEach(function(message, index) {
+      if (message.attachment === 1 && !message.hasOwnProperty('image')) {
+        // Loads the message attachment image from the server
+        var path = '/api/chat/attachment/image/'.concat(freech.tempData.chatId).concat('/').concat(message.id);
+        Vue.http.get(path).then(function(res) {
+          if (res.data) {
+            // Store the data (USES VUE SET!)
+            Vue.set(freech.tempData.messages[index], 'image', res.data);
+          }
+        }, function() {
+          // Image failed to load ...
+        });
+      }
+    });
   },
 
 };
@@ -460,6 +469,7 @@ var ui = {
 
   // User input data
   input: {
+    newChatName: '',
     newUserName: '',
     newMessage: '',
     newImage: '',
@@ -534,8 +544,7 @@ var ui = {
         var notification = new Notification(
           ''.concat(freech.getNameOfUser(latestMessage.userId).concat(' has sent a message')),
           {
-            body: latestMessage.text ? latestMessage.text : '',
-            icon: latestMessage.image ? latestMessage.image : '',
+            body: latestMessage.text ? latestMessage.text : ''.concat(freech.getNameOfUser(latestMessage.userId)).concat(' has sent an image.'),
           }
         );
       }
@@ -551,7 +560,7 @@ var ui = {
   eventButtonNewChat: function() {
     ui.data.loading.creatingChat = true;
     ui.data.errors.createNewChat = false;
-    freech.chatCreateNew(function(success) {
+    freech.chatCreateNew(ui.input.newChatName, function(success) {
         ui.data.loading.creatingChat = false;
         ui.data.errors.createNewChat = !success;
         // Update ui state on success
@@ -821,7 +830,7 @@ Vue.filter('message', function(value) {
 
 // The Vue-JS instance
 new Vue({
-  el: 'body',
+  el: 'html',
   data: {
     // The application data
     freechData: freech.data,

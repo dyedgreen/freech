@@ -75,7 +75,7 @@ class ChatManager {
       switch (url.path[2]) {
         case 'new': {
           // Get the name
-          const name = url.data.hasOwnProperty('chatName') ? url.data.chatName : null;
+          const name = url.data.hasOwnProperty('chatName') ? decodeURI(url.data.chatName) : null;
           // Make a new chat
           Chat.createNewChat(name, chatId => {
             // Send the chat id to the client (if this function fails, it will automatically return false)
@@ -121,12 +121,21 @@ class ChatManager {
           }
           break;
         }
+        case 'attachment': {
+          // Serve a chat attachment (image) format: api/chat/attachment/image/chatId/messageId
+          if (url.path.length == 6 && url.path[3] == 'image') {
+            // Try to fetch the image and send it to the request
+            ChatData.attachmentsPipeImage(url.path[4], url.path[5], res);
+            return;
+          }
+          break;
+        }
       }
     }
     // General error response
     ApiResponse.sendData(res, null, true);
     // Log this shit
-    Log.write(Log.DEBUG, 'Trying to resolve api request');
+    Log.write(Log.WARNING, 'Trying to resolve api request failed');
   }
 
   /**

@@ -6,7 +6,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="initial-scale=0.8, maximum-scale=0.8">
 		<!-- Title -->
-		<title>Freech - Chat</title>
+		<title>Freech - {{ freechTemp.chatName }}</title>
 		<!-- Fonts & Css -->
 		<link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
 		<link href="./css/chat.css" rel="stylesheet" type="text/css">
@@ -17,7 +17,7 @@
 		<!-- The Sidebar (displaying the logged-in users) -->
 		<div class="sidebar">
 			<!-- The Header -->
-			<h1>People</h1>
+			<h1>{{ freechTemp.chatName }}</h1>
 			<!-- The list with all people -->
 			<div class="scroll">
 				<div v-for="user in freechTemp.userList" class="person {{ user.id | userclass }}">
@@ -28,8 +28,6 @@
 			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button share">Invite a friend</a>
 			<!-- The Settings Button -->
 			<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button settings">Settings</a>
-			<!-- The Expiration Notice -->
-			<span class="warning" v-if="freechTemp.expirationTimeLeft < 3600000">This chat will expire in {{ freechTemp.expirationTimeLeft | mstotime }}.</span>
 		</div>
 
 		<!-- The Chat -->
@@ -50,13 +48,12 @@
 					<!-- Sender & Timestamp -->
 					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
 					<!-- Message text -->
-					<p v-if="message.text && message.text !== 'nogodsnomasters'">{{{ message.text | message }}}</p>
+					<p v-if="message.text">{{{ message.text | message }}}</p>
 					<!-- Spacing -->
-					<span v-if="message.text && message.image && message.text !== 'nogodsnomasters'" style="display:block"></span>
+					<span v-if="message.text && message.attachment === 1" style="display:block"></span>
 					<!-- Attached image -->
-					<img v-if="message.image && message.text !== 'nogodsnomasters'" v-bind:src="message.image">
-					<!-- Simple Easter Egg -->
-					<img v-if="message.text === 'nogodsnomasters'" v-bind:src="'./images/no_gods-no_masters.png'">
+					<img v-if="message.attachment === 1 && message.image" v-bind:src="message.image">
+					<span v-if="message.attachment === 1 && !message.image" class="image-loading">Loading ...</span>
 				</div>
 
 				<!-- A sending message -->
@@ -120,8 +117,6 @@
 			<div class="modal">
 				<!-- The Error Feedback -->
 				<span class="error" v-if="uiData.errors.settingsWarning !== ''">{{ uiData.errors.settingsWarning }}</span>
-				<!-- Time Warning -->
-				<span class="warning" v-else>This chat will expire in {{ freechTemp.expirationTimeLeft | mstotime }}.</span>
 				<!-- The Settings Page -->
 				<h1>Settings</h1>
 				<!-- Load on Scoll -->
@@ -142,7 +137,8 @@
 			<div class="modal">
 				<span class="error" v-if="uiData.errors.createNewChat">Failed to create a chat.</span>
 				<h1>New chat</h1>
-				<p>Do you want to create a new chat?</p>
+				<p>Do you want to create a new chat? You can give your chat an optional name.</p>
+				<input type="text" v-model="input.newChatName" v-on:keyup.enter="buttonNewChat" placeholder="What's this chat about?">
 				<a href="javascript:void(0)" v-on:click="buttonNewChat" v-bind:class="{ 'loading': uiData.loading.creatingChat }" class="button">Create Chat</a>
 			</div>
 		</div>
@@ -163,17 +159,9 @@
 		<div class="modal-bg" v-if="uiData.modals.disconnect" transition="modal">
 			<div class="modal error">
 				<!-- Lost connection -->
-				<span v-if="freechTemp.expirationTimeLeft > 0">
-					<h1>Connection lost</h1>
-					<p>Do you want to reconnect?</p>
-					<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button yellow">Reconnect</a>
-				</span>
-				<!-- Lost connection & chat is expired -->
-				<span v-else>
-					<h1>The chat expired</h1>
-					<p>You can always create a new chat.</p>
-					<a href="/chat" class="button red">New Chat</a>
-				</span>
+				<h1>Connection lost</h1>
+				<p>Do you want to reconnect?</p>
+				<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button yellow">Reconnect</a>
 			</div>
 		</div>
 

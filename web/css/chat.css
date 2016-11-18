@@ -55,10 +55,13 @@ html {
 	font-weight:700;
 	line-height:75px;
 	text-align:left;
+	text-overflow:ellipsis;
 
 	color:#EEEFED;
 
+	white-space:nowrap;
 	pointer-events:none;
+	overflow:hidden;
 }
 
 .sidebar .warning {
@@ -473,6 +476,22 @@ html {
 
 	background:rgba(0,0,0,0.2);
 	border-radius:10px
+}
+.chat .messages .message > .image-loading {
+	width:350px;
+	height:200px;
+	display:inline-block;
+
+	font-size:20px;
+	font-weight:700;
+	font-style:normal;
+	line-height:200px;
+	text-align:center;
+
+	/*color from span info element*/
+
+	background:rgba(0,0,0,0.2);
+	border-radius:10px;
 }
 
 .chat .messages .message.notme {
