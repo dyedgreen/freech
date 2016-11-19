@@ -3,6 +3,7 @@
 
 // Imports
 const MongoClient = require('mongodb').MongoClient;
+const GridFSBucket = require('mongodb').GridFSBucket;
 
 const JsonData = require('./JsonData.js');
 const Log = require('./Log.js');
@@ -129,6 +130,22 @@ class Db {
   collection(name) {
     if (typeof name === 'string' && this.conn.open) {
       return this.conn.db.collection(name, { strict: false });
+    }
+
+    return false;
+  }
+
+  /**
+  * bucket() returns
+  * a data-storage bucket that
+  * can be used to store files
+  * like images.
+  *
+  * @param {string} name
+  */
+  bucket(name) {
+    if (typeof name === 'string' && this.conn.open) {
+      return new GridFSBucket(this.conn.db, { bucketName: name });
     }
 
     return false;

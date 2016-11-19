@@ -13,6 +13,9 @@ let localDataStore = {
   attachments: {},
 };
 
+// The database connection instance
+let db = null;
+
 /**
 * ChatData
 *
@@ -48,31 +51,14 @@ class ChatData {
   * appropriate store.
   */
 
-  static chatExists(chatId, callback) {
-    switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
-        ChatData.selfContainedChatExists(chatId, callback);
-        break;
-      }
-      case ChatData.MONGODB: {
-        // TODO
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedChatExists(chatId, callback);
-      }
-    }
-  }
-
   static chatGetData(chatId, callback) {
     switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
+      case ChatData.store.SELFCONTAINED: {
         ChatData.selfContainedChatGetData(chatId, callback);
         break;
       }
-      case ChatData.MONGODB: {
-        // TODO
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbChatGetData(chatId, callback);
         break;
       }
       default: {
@@ -84,12 +70,12 @@ class ChatData {
 
   static chatCreate(chatId, name, callback) {
     switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
+      case ChatData.store.SELFCONTAINED: {
         ChatData.selfContainedChatCreate(chatId, name, callback);
         break;
       }
-      case ChatData.MONGODB: {
-        // TODO
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbChatCreate(chatId, name, callback);
         break;
       }
       default: {
@@ -101,12 +87,12 @@ class ChatData {
 
   static chatDelete(chatId, callback) {
     switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
+      case ChatData.store.SELFCONTAINED: {
         ChatData.selfContainedChatDelete(chatId, callback);
         break;
       }
-      case ChatData.MONGODB: {
-        // TODO
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbChatDelete(chatId, callback);
         break;
       }
       default: {
@@ -118,12 +104,12 @@ class ChatData {
 
   static chatAddUser(chatId, userData, callback) {
     switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
+      case ChatData.store.SELFCONTAINED: {
         ChatData.selfContainedChatAddUser(chatId, userData, callback);
         break;
       }
-      case ChatData.MONGODB: {
-        // TODO
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbChatAddUser(chatId, userData, callback);
         break;
       }
       default: {
@@ -135,12 +121,12 @@ class ChatData {
 
   static messagesAddMessage(chatId, messageData, messageAttachment, callback) {
     switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
+      case ChatData.store.SELFCONTAINED: {
         ChatData.selfContainedMessagesAddMessage(chatId, messageData, messageAttachment, callback);
         break;
       }
-      case ChatData.MONGODB: {
-        // TODO
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbMessagesAddMessage(chatId, messageData, messageAttachment, callback);
         break;
       }
       default: {
@@ -150,14 +136,14 @@ class ChatData {
     }
   }
 
-  static messagesGetOld(chatId, count, lastMessageId, callback) {
+  static messagesGetOld(chatId, count, lastMessageId, loadedMessagesCount, callback) {
     switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
+      case ChatData.store.SELFCONTAINED: {
         ChatData.selfContainedMessagesGetOld(chatId, count, lastMessageId, callback);
         break;
       }
-      case ChatData.MONGODB: {
-        // TODO
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbMessagesGetOld(chatId, count, loadedMessagesCount, callback);
         break;
       }
       default: {
@@ -169,12 +155,12 @@ class ChatData {
 
   static attachmentsPipeImage(chatId, messageId, writeStream) {
     switch(storeMode) {
-      case ChatData.SELFCONTAINED: {
+      case ChatData.store.SELFCONTAINED: {
         ChatData.selfContainedAttachmentsPipeImage(chatId, messageId, writeStream);
         break;
       }
-      case ChatData.MONGODB: {
-        // TODO
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbAttachmentsPipeImage(chatId, messageId, writeStream);
         break;
       }
       default: {
@@ -190,16 +176,6 @@ class ChatData {
   * operations for the mode:
   * SELFCONTAINED
   */
-
-  // Test whether the chat exists (not really needed)
-  static selfContainedChatExists(chatId, callback) {
-    // Try to find the chat in the local chat list
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      callback(true);
-    } else {
-      callback(false);
-    }
-  }
 
   // Return the chat data to a callback (can also emulate the chat-exists function)
   static selfContainedChatGetData(chatId, callback) {
@@ -288,7 +264,7 @@ class ChatData {
     }
   }
 
-  // Return a bunch of old messages (also returns the number of total messages!)
+  // Return a bunch of old messages (uses the messages loaded count, instead of last msg id)
   static selfContainedMessagesGetOld(chatId, count, lastMessageId, callback) {
     // Test if chat exists
     if (localDataStore.chats.hasOwnProperty(chatId)) {
@@ -332,19 +308,223 @@ class ChatData {
       }
     } else {
       // Close the stream
-      stream.end();
+      writeStream.end();
     }
   }
 
   /**
-  * imageBlogFromDataUri() converts a
-  * data uri image, as send by the
-  * client, into a image file string.
-  *
-  * @param {string} dataUri
+  * Functions that perform
+  * the respective storage
+  * operations for the mode:
+  * MONGODB
   */
-  static imageStringFromDataUri(dataUri) {
-    return dataUri.replace('data:image/png;base64,', '');
+
+  // A 'private' helper function (to not retrive too much data using ChatGetData)
+  static mongoDbChatExists(chatId, callback) {
+    // Get the collection
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to find the entry
+      chatsColl.findOne(
+        { id: chatId },
+        { fields: { id: 1 } },
+        (err, doc) => {
+          // If the document was found, return true
+          if (!err && doc) {
+            callback(true);
+          } else {
+            callback(false);
+          }
+      });
+    } else {
+      callback(false);
+    }
+  }
+
+  // Return the chat data to a callback (can also emulate the chat-exists function)
+  static mongoDbChatGetData(chatId, callback) {
+    // Get the collection
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to find the entry
+      chatsColl.findOne(
+        { id: chatId },
+        { fields: { id: 1, name: 1, messageCount: 1, users: 1 } },
+        (err, doc) => {
+          // If the document was found, return its data
+          if (!err && doc) {
+            callback(doc);
+          } else {
+            callback(false);
+          }
+      });
+    } else {
+      callback(false);
+    }
+  }
+
+  // Store the data for a new chat / create it's data set
+  static mongoDbChatCreate(chatId, name, callback) {
+    // Test if chat already exists (and stop creating if it does)
+    ChatData.mongoDbChatExists(chatId, exists => {
+      if (!exists) {
+        // Set up the data obj ()attachmnet
+        const chatData = {
+          id: chatId,
+          name,
+          messageCount: 0,
+          users: [],
+          // This field of the doc contains the messages and is not returned by GetChatData
+          messages: [],
+        };
+        // Write chat to db
+        let chatsColl = db.collection('chats');
+        if (chatsColl) {
+          chatsColl.insertOne(chatData, (err, r) => {
+            if (err === null && r.insertedCount === 1) {
+              callback(true);
+            } else {
+              callback(false);
+            }
+          });
+        } else {
+          callback(false);
+        }
+      } else {
+        callback(false);
+      }
+    });
+  }
+
+  // Delete the data for one chat / remove a given chat
+  static mongoDbChatDelete(chatId, callback) {
+    // Get the collection
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to find the entry
+      chatsColl.deleteOne(
+        { id: chatId },
+        (err, r) => {
+          // If the document was deleted, drop its bucket and return true
+          if (!err && r.deletedCount === 1) {
+            db.bucket(chatId).drop(err => {
+              // Chat and bucket are gone!
+              callback(true);
+            });
+          } else {
+            callback(false);
+          }
+      });
+    } else {
+      callback(false);
+    }
+  }
+
+  // Add a user data obj to the chat (must be supplied correctely from the chat class)
+  static mongoDbChatAddUser(chatId, userData, callback) {
+    // Get the collection
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to insert the users data
+      chatsColl.updateOne(
+        { id: chatId },
+        { $push: { users: userData } },
+        (err, r) => {
+          // Test if db update was successfull
+          if (!err && r.modifiedCount === 1) {
+            callback(true);
+          } else {
+            callback(false);
+          }
+      });
+    } else {
+      callback(false);
+    }
+  }
+
+  // Store a message (and its attached image, if supplied)
+  static mongoDbMessagesAddMessage(chatId, messageData, messageAttachment, callback) {
+    // Get the collection
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to insert the message data
+      chatsColl.updateOne(
+        { id: chatId },
+        { $push: { messages: messageData }, $inc: { messageCount: 1 } },
+        (err, r) => {
+          // Test if db update was successfull
+          if (!err && r.modifiedCount === 1) {
+            if (messageData.attachment === 1) {
+              // Store the attached image
+              let bucket = db.bucket(chatId);
+              if (bucket) {
+                let uploadStream = bucket.openUploadStream(messageData.id);
+                uploadStream.on('finish', () => {
+                  callback(true);
+                }).on('error', (err) => {
+                  // FIXME: Do something about this later
+                  callback(true);
+                });
+                uploadStream.end(messageAttachment);
+              } else {
+                // FIXME: Do something about this later
+                callback(true);
+              }
+            } else {
+              // We are done (no image needed)
+              callback(true);
+            }
+          } else {
+            callback(false);
+          }
+      });
+    } else {
+      callback(false);
+    }
+  }
+
+  // Return a bunch of old messages
+  static mongoDbMessagesGetOld(chatId, count, loadedMessagesCount, callback) {
+    // Get the collection
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to find the entry
+      chatsColl.findOne(
+        { id: chatId },
+        // Filter the messages array (make sure to exclude everything but messages!)
+        { fields: { messages: { $slice: [ -(loadedMessagesCount + count), count ] }, id: 0, name: 0, messageCount: 0, users: 0 } },
+        (err, doc) => {
+          // If the document was found, return its data
+          if (!err && doc.hasOwnProperty('messages')) {
+            callback(doc.messages);
+          } else {
+            callback(false);
+          }
+      });
+    } else {
+      callback(false);
+    }
+  }
+
+  // Pipe the attachment data through a socket, if the data exists (for an image attachment)
+  static mongoDbAttachmentsPipeImage(chatId, messageId, writeStream) {
+    // Get the neccessary bucket
+    let bucket = db.bucket(chatId);
+    if (bucket) {
+      // Test if file exists
+      bucket.find({ filename: messageId }, { fields: { filename: 1 } }).count({ limit: 1 }, (err, count) => {
+        if (!err && count === 1) {
+          // File exists, stream contents
+          bucket.openDownloadStreamByName(messageId).pipe(writeStream);
+        } else {
+          // No file, abort
+          writeStream.end();
+        }
+      });
+    } else {
+      // No bucket, abort
+      writeStream.end();
+    }
   }
 
   /**
@@ -372,6 +552,15 @@ class ChatData {
     if (typeof store === 'number' && store >= 0 && store <= 1) {
       // Change mode, if the mode is supported
       storeMode = Math.floor(store);
+      // Open the database if connected / perform other necessary setup things
+      if (storeMode == ChatData.store.MONGODB) {
+        // Open the database
+        if (db === null) db = new Db();
+      } else {
+        // Close the DB
+        if (db !== null) db.close();
+        db = null;
+      }
     }
   }
 

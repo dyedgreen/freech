@@ -152,7 +152,8 @@ class Chat {
           // { type, count, lastMessageId }
           const count = dataObject.hasOwnProperty('count') && typeof dataObject.count === 'number' ? Math.floor(dataObject.count) : 0;
           const lastMessageId = dataObject.hasOwnProperty('lastMessageId') && typeof dataObject.lastMessageId === 'string' ? dataObject.lastMessageId : false;
-          this.sendMessages(socket, count, lastMessageId);
+          const loadedMessagesCount = dataObject.hasOwnProperty('loadedMessagesCount') && typeof dataObject.loadedMessagesCount === 'number' ? Math.floor(dataObject.loadedMessagesCount) : 0;
+          this.sendMessages(socket, count, lastMessageId, loadedMessagesCount);
           break;
         }
         // The user wants to update his status
@@ -170,7 +171,6 @@ class Chat {
         }
       }
     } catch (e) {
-      console.log(e);
       Log.write(Log.WARNING, 'Could not parse JSON of network message send by', userId);
     }
     // Log about this
@@ -189,11 +189,12 @@ class Chat {
   *
   * @param {socket} socket
   * @param {number} count
-  * @param {number} offset
+  * @param {string} lastMessageId
+  * @param {number} loadedMessagesCount
   */
-  sendMessages(socket, count, lastMessageId) {
+  sendMessages(socket, count, lastMessageId, loadedMessagesCount) {
     // Get the last messages from the data
-    ChatData.messagesGetOld(this.id, count, lastMessageId == '' ? false : lastMessageId, messages => {
+    ChatData.messagesGetOld(this.id, count, lastMessageId == '' ? false : lastMessageId, loadedMessagesCount, messages => {
       if (messages) {
         // Keep a clean event loop
         setImmediate(() => {

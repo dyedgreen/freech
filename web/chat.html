@@ -36,7 +36,7 @@
 			<div id="chat-messages-scroll" v-on:scroll="scrollChat" class="messages">
 
 				<!-- The loading indicator -->
-				<span class="notice" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
+				<span class="notice" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount > freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
 				<!-- The no messages indicator -->
 				<span class="notice" v-if="freechTemp.totalMessageCount === -1 || freechTemp.totalMessageCount === 0">No messages</span>
 

@@ -270,6 +270,7 @@ var freech = {
           type: 2,
           count: 5,
           lastMessageId: freech.tempData.messages.length > 0 ? freech.tempData.messages[0].id : '',
+          loadedMessagesCount: freech.tempData.messages.length,
         });
       } catch (e) {}
     }
