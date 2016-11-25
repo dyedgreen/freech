@@ -79,7 +79,7 @@ class ChatManager {
           // Make a new chat
           Chat.createNewChat(name, chatId => {
             // Send the chat id to the client (if this function fails, it will automatically return false)
-            ApiResponse.sendData(res, chatId, false);
+            ApiResponse.sendData(res, chatId, !chatId);
           });
           return;
           break;
@@ -141,7 +141,7 @@ class ChatManager {
   /**
   * handleChatHandshake() lets
   * a socket join a chat as a
-  * user of closes it.
+  * user or closes it.
   *
   * @param {socket} socket
   * @param {string} message

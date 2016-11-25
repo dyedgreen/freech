@@ -6,7 +6,11 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="initial-scale=0.8, maximum-scale=0.8">
 		<!-- Title -->
-		<title>Freech - {{ freechTemp.chatName }}</title>
+		<title>Freech - Chat</title>
+		<script>
+			// To avoid non-rendered template string in shared URLs
+			document.getElementsByTagName('title')[0].innerHTML = 'Freech - {{ freechTemp.chatName }}';
+		</script>
 		<!-- Fonts & Css -->
 		<link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
 		<link href="./css/chat.css" rel="stylesheet" type="text/css">
@@ -24,10 +28,17 @@
 					<span>{{ user.name }}</span>
 				</div>
 			</div>
-			<!-- The Share Button -->
-			<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button share">Invite a friend</a>
-			<!-- The Settings Button -->
-			<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button settings">Settings</a>
+			<!-- Button Sheet -->
+			<div class="more" v-show="uiData.modals.sidebarMore">
+				<!-- The Share Button -->
+				<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Invite a friend</a>
+				<!-- The My Chats Button -->
+				<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Your Chats</a>
+				<!-- The Settings Button -->
+				<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Settings</a>
+			</div>
+			<!-- More Button -->
+			<a href="javascript:void(0)" v-on:click="buttonToggleSidebarMore" class="button">{{ uiData.modals.sidebarMore ? 'Less' : 'More' }}</a>
 		</div>
 
 		<!-- The Chat -->
@@ -85,9 +96,12 @@
 				<img v-bind:src="input.newImage">
 				<!-- Add a comment -->
 				<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="Add a comment.">
-				<!-- Send And Cancel -->
-				<a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="button" v-bind:class="{ 'loading': uiData.loading.sendingNewMessage }">Send Image</a>
-				<a href="javascript:void(0)" v-show="!uiData.loading.sendingNewMessage" v-on:click="buttonCancelImage" class="button yellow">Cancel</a>
+				<!-- Send, Rotate, and Cancel -->
+				<span class="multi-button">
+					<a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="button" v-bind:class="{ 'loading': uiData.loading.sendingNewMessage }">Send Image</a>
+					<a href="javascript:void(0)" v-on:click="buttonRotateImage" class="button dark">Rotate</a>
+					<a href="javascript:void(0)" v-show="!uiData.loading.sendingNewMessage" v-on:click="buttonCancelImage" class="button yellow">Cancel</a>
+				</span>
 			</div>
 		</div>
 
@@ -97,18 +111,36 @@
 				<h1>Share this chat</h1>
 				<p>To share this chat, please invite your friends using this URL.</p>
 				<!-- URL -->
-				<span class="url">{{ uiData.content.shareUrl }}</span>
+				<a href="{{ uiData.content.shareUrl }}" class="url">{{ uiData.content.shareUrl }}</a>
 				<!-- Social buttons -->
-				<span class="social">
+				<span class="multi-button">
 					<!-- Email -->
-					<a href="mailto:?&body={{ uiData.content.shareUrl }}" target="_blank" class="button" style="color:#011627;background:#011627">EMail</a>
+					<a href="mailto:?&body={{ uiData.content.shareUrl }}" target="_blank" class="button dark">EMail</a>
 					<!-- Twitter -->
-					<a href="https://twitter.com/intent/tweet?url={{ uiData.content.shareUrl }}" target="_blank" class="button" style="color:#1da1f2;background:#1da1f2">Twitter</a>
+					<a href="https://twitter.com/intent/tweet?url={{ uiData.content.shareUrl }}" target="_blank" class="button dark">Twitter</a>
 					<!-- Facebook -->
-					<a href="https://www.facebook.com/sharer/sharer.php?u={{ uiData.content.shareUrl }}" target="_blank" class="button" style="color:#365899;background:#365899">Facebook</a>
+					<a href="https://www.facebook.com/sharer/sharer.php?u={{ uiData.content.shareUrl }}" target="_blank" class="button dark">Facebook</a>
 				</span>
 				<!-- Close -->
 				<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
+			</div>
+		</div>
+		
+		<!-- Your Chats Modal -->
+		<div class="modal-bg" v-if="uiData.modals.chatList" transition="modal">
+			<div class="modal large">
+				<h1>Your Chats</h1>
+				<!-- The Chat List -->
+				<a v-for="(chatId, chatEntry) in freechData.users" href="{{ chatId | shareurl }}" class="chat-list {{ chatEntry.id | userclass }}">
+					<!-- Display the chat and user name -->
+					<h1>{{ chatEntry.chatName }}</h1>
+					<h2>{{ chatEntry.name }}</h2>
+				</a>
+				<!-- Close and New Chat -->
+				<span class="multi-button">
+					<a href="/chat" class="button yellow">New Chat</a>
+					<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Done</a>
+				</span>
 			</div>
 		</div>
 
@@ -161,7 +193,11 @@
 				<!-- Lost connection -->
 				<h1>Connection lost</h1>
 				<p>Do you want to reconnect?</p>
-				<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button yellow">Reconnect</a>
+				<!-- Reconnect and New Chat -->
+				<span class="multi-button">
+					<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button yellow">Reconnect</a>
+					<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button red">New Chat</a>
+				</span>
 			</div>
 		</div>
 

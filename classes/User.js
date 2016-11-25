@@ -55,7 +55,7 @@ class User {
   * @return {bool}
   */
   static validateId(userId) {
-    return /^[a-zA-Z\d]{128}$/.test(''.concat(userId));
+    return /^[a-zA-Z\d]{16}$/.test(''.concat(userId));
   }
 
   /**

@@ -68,6 +68,46 @@ class RandString {
     return RandString.arbitrary(16);
   }
 
+  /**
+  * moreTiny() returns a
+  * 8 char string.
+  *
+  * @return {string}
+  */
+  static get moreTiny() {
+    return RandString.arbitrary(8);
+  }
+
+  /**
+  * idChat() returns a
+  * new chat id. (32)
+  *
+  * @return {string}
+  */
+  static get idChat() {
+    return RandString.short;
+  }
+
+  /**
+  * idUser() returns a
+  * new user id. (16)
+  *
+  * @return {string}
+  */
+  static get idUser() {
+    return RandString.tiny;
+  }
+
+  /**
+  * idMessage() returns a
+  * new message id. (8)
+  *
+  * @return {string}
+  */
+  static get idMessage() {
+    return RandString.moreTiny;
+  }
+
 }
 
 // Export

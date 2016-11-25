@@ -40,7 +40,7 @@ let db = null;
 * Attachments:
 * chatId -> { id(is the id of the message) } -> data
 *
-* TODO: Add logging !
+* TODO: Add logging(!)
 */
 class ChatData {
 

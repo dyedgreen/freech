@@ -221,7 +221,7 @@ class Chat {
   * message of a given id to
   * all connected users.
   *
-  * @param {string} messageId
+  * @param {string} message
   */
   pushNewMessage(message) {
     setImmediate(() => {
@@ -383,12 +383,12 @@ class Chat {
       typeof messageText === 'string' &&
       typeof messageImage === 'string' &&
       messageText.length + messageImage.length > 0 && // Either an image or a text or both
-      messageImage.length <= 1000000 && // Max image size (images are downscaled on client side)
+      messageImage.length <= 2000000 && // Max image size (images are downscaled on client side)
       User.testHash(this.users[userIndex].token, tokenHash, time)
     ) {
       // The Message seems valid, create it
       const newMessage = {
-        id: RandString.short,
+        id: RandString.idMessage,
         text: messageText.length > 0 ? messageText.substr(0, 2000) : false, // Current message length limit, be sure to warn on client side!
         attachment: messageImage.length > 0 ? 1 : 0, // The attachment type, 0 = none, 1 = image
         userId: userId,
@@ -571,7 +571,7 @@ class Chat {
     // Keed a clean event loop
     setImmediate(() => {
       // Create name and id
-      const chatId = RandString.medium;
+      const chatId = RandString.idChat;
       const chatName = typeof name === 'string' && name.length > 0 ? name.substr(0, 50) : 'Chat';
       // Create the chat record
       ChatData.chatCreate(chatId, chatName, success => {

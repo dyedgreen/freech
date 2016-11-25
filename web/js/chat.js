@@ -11,7 +11,7 @@ var freech = {
       notifications: false,
       loadMessagesOnScroll: true,
     },
-    v: 2,
+    v: 3,
   },
 
   // Data that is loaded on runtime
@@ -59,8 +59,8 @@ var freech = {
   imageScale: function(dataURI, callback) {
     try {
       // Create the image resources
-      var maxHeight = 500;
-      var maxWidth = 350;
+      var maxHeight = 600;
+      var maxWidth = 600;
       var height = 0;
       var width = 0;
       var img = document.createElement('img');
@@ -92,6 +92,39 @@ var freech = {
         canvas.height = height;
         var ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
+
+        // Return the result to the callback
+        callback(canvas.toDataURL('image/png'));
+      };
+      img.src = ''.concat(dataURI);
+    } catch(e) {
+      // Error
+      callback('');
+    }
+  },
+
+  // Rotates an image 90 deg (looses some quality!)
+  imageRotate: function(dataURI, callback) {
+    try {
+      // Create the image resources
+      var img = document.createElement('img');
+
+      // Do everything else after image has loaded
+      img.onload = function() {
+        // Work out the rotated size
+        var width = img.height;
+        var height = img.width;
+        img.heigh = height;
+        img.width = width;
+
+        // Rotate the image using the canvas
+        var canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        var ctx = canvas.getContext('2d');
+        ctx.translate(width, height / width);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(img, 0, 0);
 
         // Return the result to the callback
         callback(canvas.toDataURL('image/png'));
@@ -140,9 +173,13 @@ var freech = {
     // Cause .protocol has bad browser support
     return location.href.split('://')[0];
   },
+  urlGetPlain: function() {
+    // Get a plain url (no chat id)
+    return location.href.split('?')[0].split('#')[0];
+  },
 
   validateChatId: function(chatId) {
-    return typeof chatId === 'string' && chatId.length === 64;
+    return typeof chatId === 'string' && chatId.length === 32;
   },
 
   // Temp Data searching functions
@@ -195,8 +232,9 @@ var freech = {
   chatCreateUser: function(name, callback) {
     // Creates a user and automatically registers it with the current chat (only if name && chat)
     var user = {
-      id: freech.randomString(128),
+      id: freech.randomString(16),
       name: ''.concat(name),
+      chatName: 'Chat',
       token: '',
     };
     // Try to join the current chat
@@ -314,6 +352,10 @@ var freech = {
               case 0: {
                 // Store the chat name
                 freech.tempData.chatName = dataObj.chatName;
+                // Store the chat name listed in the user list
+                freech.data.users[freech.tempData.chatId].chatName = dataObj.chatName;
+                // Fix state
+                freech.dataStore();
                 break;
               }
               // New messages was pushed by the server (WILL CALL UI_UPDATE CALLBACK)
@@ -449,7 +491,9 @@ var ui = {
       newUser: false,
       settings: false,
       share: false,
+      chatList: false,
       disconnect: false,
+      sidebarMore: false,
     },
     errors: {
       createNewChat: false,
@@ -622,7 +666,7 @@ var ui = {
   // Event that sends a new message
   eventButtonSendNewMessage: function() {
     // TODO: Error messages for invalid input
-    if (ui.input.newMessage.length + ui.input.newImage.length > 0 && ui.input.newImage.length <= 1000000) {
+    if (ui.input.newMessage.length + ui.input.newImage.length > 0 && ui.input.newImage.length <= 2000000) {
       // Display loading
       ui.data.loading.sendingNewMessage = true;
       // Send message
@@ -650,6 +694,19 @@ var ui = {
     ui.input.newImage = '';
   },
 
+  // Event that rotates an image send (is set)
+  eventButtonRotateImage: function() {
+    // If image is set, rotate it 90 deg
+    if (ui.input.newImage !== '') {
+      freech.imageRotate(ui.input.newImage, function(rotatedImage) {
+        // If there where no errors, change the image
+        if (rotatedImage) {
+          ui.input.newImage = rotatedImage;
+        }
+      });
+    }
+  },
+
   // Event that loads old messages
   eventButtonLoadOldMessages: function() {
     // Load old messages
@@ -663,6 +720,16 @@ var ui = {
     ui.data.errors.settingsWarning = '';
     // Fix the freech data state
     freech.dataStore();
+  },
+
+  // Event that opens / closes the chat list
+  eventButtonToggleChatList: function() {
+    ui.data.modals.chatList = !ui.data.modals.chatList;
+  },
+
+  // Event that opens / closes the more tab
+  eventButtonToggleSidebarMore: function() {
+    ui.data.modals.sidebarMore = !ui.data.modals.sidebarMore;
   },
 
   // Event that is executed on scroll in the chat messages-view
@@ -754,16 +821,6 @@ Vue.filter('timestamp', function(value) {
 	}
 	return value;
 });
-// Filter that displays the time like 15h 35min
-Vue.filter('mstotime', function(value) {
-  if (typeof value === 'number') {
-    var newVal = '';
-    if (value > 3600000) newVal = newVal.concat(Math.floor(value / 3600000)).concat('h ');
-    newVal = newVal.concat(Math.floor(value / 60000) % 60).concat('min');
-    return newVal;
-  }
-  return value;
-});
 // Userclass filter, returns the correct conditional classes for an userId
 Vue.filter('userclass', function(value) {
   var colors = ['blue', 'pink', 'green', 'red', 'yellow', 'orange', 'purple'];
@@ -827,6 +884,10 @@ Vue.filter('message', function(value) {
   });
   return valueArray.join(' ');
 });
+// Share URL filter, turns chatIds into share urls
+Vue.filter('shareurl', function(value) {
+  return ''.concat(freech.urlGetPlain()).concat('?').concat(value);
+});
 
 
 // The Vue-JS instance
@@ -849,8 +910,11 @@ new Vue({
     buttonSendNewMessage: ui.eventButtonSendNewMessage,
     buttonSendImage: ui.eventButtonSendImage,
     buttonCancelImage: ui.eventButtonCancelImage,
+    buttonRotateImage: ui.eventButtonRotateImage,
     buttonLoadOldMessages: ui.eventButtonLoadOldMessages,
     buttonToggleSettings: ui.eventButtonToggleSettings,
+    buttonToggleChatList: ui.eventButtonToggleChatList,
+    buttonToggleSidebarMore: ui.eventButtonToggleSidebarMore,
     scrollChat: ui.eventScrollChat,
     settingsEnableNotifications: ui.eventSettingsEnableNotifications,
   },
