@@ -38,3 +38,7 @@ open:0,close:1,ping:2,pong:3,message:4,upgrade:5,noop:6},n=d(m),o={type:"error",
 * (Adapted version)
 */
 function localStorageIsAvilable(){var a="freech";try{return localStorage.setItem(a,a),localStorage.removeItem(a),!0}catch(a){return!1}}localStorageIsAvilable()?window.localStorageSafe=window.localStorage:(window.localStorageSafe={getItem:function(a){return a&&this.hasOwnProperty(a)?unescape(document.cookie.replace(new RegExp("(?:^|.*;\\s*)"+escape(a).replace(/[\-\.\+\*]/g,"\\$&")+"\\s*\\=\\s*((?:[^;](?!;))*[^;]?).*"),"$1")):null},key:function(a){return unescape(document.cookie.replace(/\s*\=(?:.(?!;))*$/,"").split(/\s*\=(?:[^;](?!;))*[^;]?;\s*/)[a])},setItem:function(a,b){a&&(document.cookie=escape(a)+"="+escape(b)+"; expires=Tue, 19 Jan 2038 03:14:07 GMT; path=/",this.length=document.cookie.match(/\=/g).length)},length:0,removeItem:function(a){a&&this.hasOwnProperty(a)&&(document.cookie=escape(a)+"=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/",this.length--)},hasOwnProperty:function(a){return new RegExp("(?:^|;\\s*)"+escape(a).replace(/[\-\.\+\*]/g,"\\$&")+"\\s*\\=").test(document.cookie)}},window.localStorageSafe.length=(document.cookie.match(/\=/g)||window.localStorage).length);
+/*
+* Find length of Object
+*/
+Object.prototype.countOwnProperties = function(){return Object.keys(this).length};

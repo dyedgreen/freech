@@ -368,7 +368,10 @@ var freech = {
                 // Hit the ui update callback
                 callbackMessagesLoaded(true);
                 // Load the image-attachments from the server
-                freech.attachmentGetImages();
+                freech.attachmentGetImages(function(){
+                  // On image load, repeat ui update callback
+                  callbackMessagesLoaded(true);
+                });
                 break;
               }
               // New user-list was recived
@@ -399,7 +402,10 @@ var freech = {
                 // Old messages callback
                 callbackMessagesLoaded(false);
                 // Load the image-attachments from the server
-                freech.attachmentGetImages();
+                freech.attachmentGetImages(function(){
+                  // On image load, repeat old messages callback
+                  callbackMessagesLoaded(false);
+                });
                 break;
               }
               // Debug stuff
@@ -460,7 +466,7 @@ var freech = {
     }
   },
 
-  attachmentGetImages: function() {
+  attachmentGetImages: function(callback) {
     // Go through all messages and request the missing images
     freech.tempData.messages.forEach(function(message, index) {
       if (message.attachment === 1 && !message.hasOwnProperty('image')) {
@@ -470,6 +476,8 @@ var freech = {
           if (res.data) {
             // Store the data (USES VUE SET!)
             Vue.set(freech.tempData.messages[index], 'image', res.data);
+            // Execute callback, if given
+            if (typeof callback === 'function') callback();
           }
         }, function() {
           // Image failed to load ...

@@ -125,24 +125,6 @@
 				<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
 			</div>
 		</div>
-		
-		<!-- Your Chats Modal -->
-		<div class="modal-bg" v-if="uiData.modals.chatList" transition="modal">
-			<div class="modal large">
-				<h1>Your Chats</h1>
-				<!-- The Chat List -->
-				<a v-for="(chatId, chatEntry) in freechData.users" href="{{ chatId | shareurl }}" class="chat-list {{ chatEntry.id | userclass }}">
-					<!-- Display the chat and user name -->
-					<h1>{{ chatEntry.chatName }}</h1>
-					<h2>{{ chatEntry.name }}</h2>
-				</a>
-				<!-- Close and New Chat -->
-				<span class="multi-button">
-					<a href="/chat" class="button yellow">New Chat</a>
-					<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Done</a>
-				</span>
-			</div>
-		</div>
 
 		<!-- Settings Modal -->
 		<div class="modal-bg" v-if="uiData.modals.settings" transition="modal">
@@ -171,7 +153,11 @@
 				<h1>New chat</h1>
 				<p>Do you want to create a new chat? You can give your chat an optional name.</p>
 				<input type="text" v-model="input.newChatName" v-on:keyup.enter="buttonNewChat" placeholder="What's this chat about?">
-				<a href="javascript:void(0)" v-on:click="buttonNewChat" v-bind:class="{ 'loading': uiData.loading.creatingChat }" class="button">Create Chat</a>
+				<!-- Create Chat and View Chat List -->
+				<span class="multi-button">
+					<a href="javascript:void(0)" v-on:click="buttonNewChat" v-bind:class="{ 'loading': uiData.loading.creatingChat }" class="button">Create Chat</a>
+					<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button dark">Your Chats</a>
+				</span>
 			</div>
 		</div>
 
@@ -184,6 +170,26 @@
 				<p>Please enter your name.</p>
 				<input type="text" v-model="input.newUserName" v-on:keyup.enter="buttonCreateUser" placeholder="What's your name?">
 				<a href="javascript:void(0)" v-on:click="buttonCreateUser" v-bind:class="{ 'loading': uiData.loading.creatingUser }" class="button">Join Chat</a>
+			</div>
+		</div>
+
+		<!-- Your Chats Modal -->
+		<div class="modal-bg" v-if="uiData.modals.chatList" transition="modal">
+			<div class="modal large">
+				<h1>Your Chats</h1>
+				<!-- The no chats indicator -->
+				<p v-if="freechData.users.countOwnProperties() === 0">You don't have any chats. Try creating one and invite your friends.</p>
+				<!-- The Chat List -->
+				<a v-for="(chatId, chatEntry) in freechData.users" href="{{ chatId | shareurl }}" class="chat-list {{ chatEntry.id | userclass }}">
+					<!-- Display the chat and user name -->
+					<h1>{{ chatEntry.chatName }}</h1>
+					<h2>{{ chatEntry.name }}</h2>
+				</a>
+				<!-- Close and New Chat -->
+				<span class="multi-button">
+					<a href="/chat" class="button yellow">New Chat</a>
+					<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Done</a>
+				</span>
 			</div>
 		</div>
 
