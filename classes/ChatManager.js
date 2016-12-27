@@ -73,6 +73,7 @@ class ChatManager {
     // Test if the request targets the chats endpoint (/api/chats/something ...)
     if (url.path.length > 2 && url.path[1] == 'chat') {
       switch (url.path[2]) {
+        // Create a new chat
         case 'new': {
           // Get the name
           const name = url.data.hasOwnProperty('chatName') ? decodeURI(url.data.chatName) : null;
@@ -84,6 +85,7 @@ class ChatManager {
           return;
           break;
         }
+        // Add a new user to a given chat
         case 'join': {
           // Get the users id & name
           if (
@@ -121,8 +123,89 @@ class ChatManager {
           }
           break;
         }
+        // Deactivate a users account for a given chat
+        case 'deactivate': {
+          // Test if all needed data was supplied
+          if (
+            url.data.hasOwnProperty('chatId') &&
+            url.data.hasOwnProperty('userId') &&
+            url.data.hasOwnProperty('hash') &&
+            url.data.hasOwnProperty('time')
+          ) {
+            // Get the input data
+            const chatId = decodeURI(''.concat(url.data.chatId));
+            const userId = decodeURI(''.concat(url.data.userId));
+            const hash = decodeURI(''.concat(url.data.hash));
+            const time = decodeURI(''.concat(url.data.time));
+            // Get the chat / open it if its not allready open
+            const chatIndex = this.indexOfOpenChat(chatId);
+            if (chatIndex === -1) {
+              // Open the chat
+              this.openChat(chatId, success => {
+                // If the chat was opened, try to join, else abort
+                if (success) {
+                  // Deactivate the user
+                  let userDeactivated = this.chats[this.indexOfOpenChat(chatId)].changeUserActive(userId, hash, time, false);
+                  // Send Api response
+                  ApiResponse.sendData(res, userDeactivated, !userDeactivated);
+                } else {
+                  // Error response, could not be opened
+                  ApiResponse.sendData(res, null, true);
+                }
+              });
+            } else {
+              // Deactivate the user
+              let userDeactivated = this.chats[chatIndex].changeUserActive(userId, hash, time, false);
+              // Send Api response
+              ApiResponse.sendData(res, userDeactivated, !userDeactivated);
+            }
+            return;
+          }
+          break;
+        }
+        // (Re)activate a user account for a given chat
+        case 'activate': {
+          // Test if all needed data was supplied
+          if (
+            url.data.hasOwnProperty('chatId') &&
+            url.data.hasOwnProperty('userId') &&
+            url.data.hasOwnProperty('hash') &&
+            url.data.hasOwnProperty('time')
+          ) {
+            // Get the input data
+            const chatId = decodeURI(''.concat(url.data.chatId));
+            const userId = decodeURI(''.concat(url.data.userId));
+            const hash = decodeURI(''.concat(url.data.hash));
+            const time = decodeURI(''.concat(url.data.time));
+            // Get the chat / open it if its not allready open
+            const chatIndex = this.indexOfOpenChat(chatId);
+            if (chatIndex === -1) {
+              // Open the chat
+              this.openChat(chatId, success => {
+                // If the chat was opened, try to join, else abort
+                if (success) {
+                  // Activate the user
+                  let userActivated = this.chats[chatIndex].changeUserActive(userId, hash, time, true);
+                  // Send Api response
+                  ApiResponse.sendData(res, userActivated, !userActivated);
+                } else {
+                  // Error response, could not be opened
+                  ApiResponse.sendData(res, null, true);
+                }
+              });
+            } else {
+              // Activate the user
+              let userActivated = this.chats[chatIndex].changeUserActive(userId, hash, time, true);
+              // Send Api response
+              ApiResponse.sendData(res, userActivated, !userActivated);
+            }
+            return;
+          }
+          break;
+        }
+        // Serve a chat attachment (image)
         case 'attachment': {
-          // Serve a chat attachment (image) format: api/chat/attachment/image/chatId/messageId
+          // format: api/chat/attachment/image/chatId/messageId
           if (url.path.length == 6 && url.path[3] == 'image') {
             // Try to fetch the image and send it to the request
             ChatData.attachmentsPipeImage(url.path[4], url.path[5], res);

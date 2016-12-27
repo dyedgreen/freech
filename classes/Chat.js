@@ -52,6 +52,7 @@ class Chat {
     // Test if the user is valid
     if (
       userIndex !== -1 && // User is registered
+      this.users[userIndex].active && // The user is not deactivated
       User.testHash(this.users[userIndex].token, tokenHash, time) // The supplied token hash was valid
     ) {
       // If this user has an open connection, close it
@@ -264,6 +265,7 @@ class Chat {
         userList.push({
           id: user.id,
           name: user.name,
+          active: user.active,
           connected: this.indexOfConnectedUser(user.id) !== -1,
         });
       });
@@ -431,6 +433,7 @@ class Chat {
           id: userId,
           name: userName.substr(0, 50),
           token: User.generateToken(),
+          active: true,
         };
         // Store change to memory
         setImmediate(() => {
@@ -458,6 +461,53 @@ class Chat {
       }
     } else {
       // User already exists, can't be added
+      return false;
+    }
+  }
+
+  /**
+  * changeUserActive() allows
+  * to activate and deactivate
+  * a given user. This status is
+  * shared with all users in the
+  * chat.
+  * A user who is deactivated can
+  * not join the chat.
+  * Returns whether the supplied
+  * data was correct.
+  *
+  * @param {string} userId
+  * @param {string} hash
+  * @param {bool} isActive
+  * @return {bool}
+  */
+  changeUserActive(userId, tokenHash, time, isActive) {
+    // Validate the userId and hash
+    const userIndex = this.indexOfUser(userId);
+    if (
+      userIndex !== -1 &&
+      User.testHash(this.users[userIndex].token, tokenHash, time)
+    ) {
+      // Update the users local status
+      this.users[userIndex].active = !!isActive;
+      // Store change to memory
+      setImmediate(() => {
+        ChatData.chatUpdateUser(this.id, userId, this.users[userIndex], success => {
+          if (success) {
+            // Log about this
+            Log.write(Log.DEBUG, 'User updated with id', userId);
+          } else {
+            // TODO: Do something about this error here!
+            Log.write(Log.ERROR, 'Could not update user with id', userId);
+          }
+        });
+      });
+      // Push a new user list to all connected clients
+      this.pushUserList();
+      // Return success
+      return true;
+    } else {
+      // The inputs where invalid
       return false;
     }
   }

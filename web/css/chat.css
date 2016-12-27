@@ -149,6 +149,7 @@ html {
 	font-weight:400;
 	line-height:50px;
 	text-align:left;
+	text-decoration:none;
 	text-overflow:ellipsis;
 	white-space:nowrap;
 
@@ -189,6 +190,13 @@ html {
 	border-radius:100%;
 
 	content:"";
+}
+.sidebar .person.inactive {
+	text-decoration:line-through;
+	color:rgba(255,255,255,0.3)!Important;
+}
+.sidebar .person.inactive:before {
+	display:none;
 }
 
 .sidebar .person.me,
@@ -724,6 +732,7 @@ html {
 	height:auto;
 	padding:15px;
 	display:block;
+	position:relative;
 	margin:25px 0;
 
 	font-size:20px;
@@ -735,9 +744,47 @@ html {
 
 	color:#011627;
 	background:#EEEFED;
+	overflow:hidden;
 	border-radius:10px;
 }
-.modal .url:hover {
+.modal .url .code {
+	width:150px;
+	max-width:100%;
+	height:auto;
+	padding:0;
+	display:block;
+	margin:0;
+	
+	border-radius:0;
+}
+.modal .url .title {
+	width:auto;
+	height:25px;
+	display:block;
+	position:absolute;
+	top:15px; right:15px; bottom:auto; left:180px;
+	
+	font-size:25px;
+	text-overflow:ellipsis;
+
+	color:inherit;
+	
+	white-space:nowrap;
+	overflow:hidden;
+}
+.modal .url .text {
+	width:auto;
+	height:auto;
+	max-height:100px;
+	display:block;
+	position:absolute;
+	top:45px; right:15px; bottom:auto; left:180px;
+	
+	color:inherit;
+	
+	overflow:hidden;
+}
+.modal .url:hover .text {
 	text-decoration:underline;
 }
 .modal .error,
@@ -861,6 +908,7 @@ html {
 	height:60px;
 	padding:0;
 	display:block;
+	position:relative;
 	margin:25px 0 0 0;
 	
 	text-decoration:none;
@@ -871,7 +919,6 @@ html {
 	border-radius:3px;
 
 	transition:all .1s;
-	cursor:pointer;
 }
 .modal .chat-list:hover {
 	background:rgba(0,0,0,0.2);
@@ -906,6 +953,71 @@ html {
 	white-space:nowrap;
 	overflow:hidden;
 }
+.modal .chat-list .notice {
+	width:100%;
+	height:60px;
+	display:block;
+	position:absolute;
+	top:0; right:0; bottom:0; left:0;
+	
+	font-size:25px;
+	font-weight:700;
+	line-height:60px;
+	text-align:center;
+	text-transform:capitalize;
+	
+	color:#fff;
+	background:#E71D36;
+	box-shadow:0 0 0 10px #E71D36;
+	border-radius:3px;
+}
+
+.modal .chat-list .actions {
+	width:100%;
+	height:50px;
+	display:block;
+	position:absolute;
+	top:5px; right:0; bottom:5px; left:0;
+	
+	text-align:right;
+	
+	opacity:0;
+	white-space:nowrap;
+	overflow:hidden;
+	transition:all .1s;
+}
+.modal .chat-list .actions .action {
+	width:auto;
+	height:50px;
+	padding:0 25px;
+	display:inline-block;
+	margin:0 20px;
+	
+	font-size:20px;
+	font-weight:700;
+	line-height:50px;
+	text-decoration:none;
+	text-align:center;
+	text-transform:uppercase;
+	
+	color:rgba(0,0,0,0.8);
+	background:rgba(0,0,0,0.5);
+	border-radius:10px;
+	
+	cursor:pointer;
+	transition:all .3s;
+}
+.modal .chat-list:hover .actions {
+	opacity:1;
+}
+.modal .chat-list:hover .actions .action {
+	margin:0 10px;
+}
+.modal .chat-list .actions .action:hover {
+	color:rgba(0,0,0,0.9);
+	background:rgba(0,0,0,0.6);
+}
+
 .modal .chat-list.blue {
 	color:#359AFF;
 }

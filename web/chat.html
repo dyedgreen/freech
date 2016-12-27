@@ -110,8 +110,12 @@
 			<div class="modal">
 				<h1>Share this chat</h1>
 				<p>To share this chat, please invite your friends using this URL.</p>
-				<!-- URL -->
-				<a href="{{ uiData.content.shareUrl }}" class="url">{{ uiData.content.shareUrl }}</a>
+				<!-- URL (uses a trick, to achive a cropped url) -->
+				<a href="{{ uiData.content.shareUrl }}" class="url">
+					<img class="code" src="{{{ uiData.content.shareQr }}}" style="background-img:url({{{ uiData.content.shareQr }}})">
+					<span class="title">{{ freechTemp.chatName }}</span>
+					<span class="text">{{ uiData.content.shareUrl.substr(0, 50) + '...' }}</span>
+				</a>
 				<!-- Social buttons -->
 				<span class="multi-button">
 					<!-- Email -->
@@ -180,11 +184,19 @@
 				<!-- The no chats indicator -->
 				<p v-if="freechData.users.countOwnProperties() === 0">You don't have any chats. Try creating one and invite your friends.</p>
 				<!-- The Chat List -->
-				<a v-for="(chatId, chatEntry) in freechData.users" href="{{ chatId | shareurl }}" class="chat-list {{ chatEntry.id | userclass }}">
+				<span v-for="(chatId, chatEntry) in freechData.users" class="chat-list {{ chatEntry.id | userclass }}">
 					<!-- Display the chat and user name -->
 					<h1>{{ chatEntry.chatName }}</h1>
 					<h2>{{ chatEntry.name }}</h2>
-				</a>
+					<!-- Deleted notice -->
+					<span v-if="!chatEntry.active" class="notice">Deleted</span>
+					<!-- Display the actions -->
+					<span class="actions">
+						<a v-if="chatEntry.active" href="{{ chatId | shareurl }}" class="action">Join</a>
+						<a v-if="chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Delete</a>
+						<a v-if="!chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Recover</a>
+					</span>
+				</span>
 				<!-- Close and New Chat -->
 				<span class="multi-button">
 					<a href="/chat" class="button yellow">New Chat</a>
@@ -202,7 +214,7 @@
 				<!-- Reconnect and New Chat -->
 				<span class="multi-button">
 					<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button yellow">Reconnect</a>
-					<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button red">New Chat</a>
+					<a href="/chat" class="button red">New Chat</a>
 				</span>
 			</div>
 		</div>

@@ -11,11 +11,12 @@ var freech = {
       notifications: false,
       loadMessagesOnScroll: true,
     },
-    v: 3,
+    v: 4,
   },
 
   // Data that is loaded on runtime
   tempData: {
+    urlParams: [],
     chatId: '',
     chatName: 'Chat',
     userList: [],
@@ -49,9 +50,18 @@ var freech = {
   // Function that stores the current data
   dataStore: function() {
     try {
-      localStorageSafe.setItem('freechData', JSON.stringify(freech.data));
+      // Create a true copy of the data object
+      var storeData = JSON.parse(JSON.stringify(freech.data));
+      // Remove all inactive users
+      Object.keys(storeData.users).forEach(function(key) {
+        if (!storeData.users[key].active) delete storeData.users[key];
+      });
+      // Store the resulting data
+      localStorageSafe.setItem('freechData', JSON.stringify(storeData));
       return true;
-    } catch (e) {}
+    } catch (e) {
+      console.log(e);
+    }
     return false;
   },
 
@@ -177,6 +187,17 @@ var freech = {
     // Get a plain url (no chat id)
     return location.href.split('?')[0].split('#')[0];
   },
+  urlProccessParams: function() {
+    // Get the URL parameters (if there are any) anc clean the URL for chatId use
+    // Format: ?chatId-Param1-Param2-...
+    var urlParams = location.search.replace('?', '').split('-');
+    freech.urlSetChatId(urlParams.shift());
+    urlParams.forEach(function(value, i) {
+      urlParams[i] = decodeURIComponent(value);
+    });
+    freech.tempData.urlParams = urlParams;
+    return urlParams;
+  },
 
   validateChatId: function(chatId) {
     return typeof chatId === 'string' && chatId.length === 32;
@@ -236,6 +257,7 @@ var freech = {
       name: ''.concat(name),
       chatName: 'Chat',
       token: '',
+      active: true,
     };
     // Try to join the current chat
     if (freech.chatExists() && !freech.chatUserExists()) {
@@ -246,9 +268,9 @@ var freech = {
       // Make HTTP request
       Vue.http.get(url).then(function(res) {
         if (!res.json().error) {
-          // Store the data
+          // Store the data (USES VUE SET TO AVOID CHAT-LSIST REACTIVITY PROBLEM FOR NEW CHATS)
           user.token = res.json().data;
-          freech.data.users[freech.tempData.chatId] = user;
+          Vue.set(freech.data.users, freech.tempData.chatId, user);
           // Fix state
           freech.dataStore();
           // Call the callback
@@ -263,6 +285,54 @@ var freech = {
       callback(true);
     } else {
       callback(false);
+    }
+  },
+  // Test if a given chat is active
+  chatUserIsActive: function(chatId) {
+    if (freech.data.users.hasOwnProperty(chatId)) {
+      return freech.data.users[chatId].active;
+    }
+    return false;
+  },
+  // Delete the local chat data and deactivate user
+  chatUserDeactivate: function(chatId) {
+    // Test if a user for this chat exists
+    if (freech.data.users.hasOwnProperty(chatId)) {
+      // Mark as inactive
+      freech.data.users[chatId].active = false;
+      // Update presistent data store
+      freech.dataStore();
+      // Send deactivation request to server
+      var time = Date.now();
+      var url = '/api/chat/deactivate';
+      url = url.concat('?chatId='.concat(encodeURI(chatId)));
+      url = url.concat('&userId='.concat(encodeURI(freech.data.users[chatId].id)));
+      url = url.concat('&hash='.concat(encodeURI(freech.socketMessageHash(freech.data.users[chatId].token, time))));
+      url = url.concat('&time='.concat(encodeURI(time)));
+      // Make HTTP request (does nothing with the result)
+      Vue.http.get(url);
+    }
+  },
+  // Recover the local chat data and reactivate user
+  chatUserActivate: function(chatId) {
+    // Test if a user for this chat exists
+    if (freech.data.users.hasOwnProperty(chatId)) {
+      // Send deactivation request to server
+      var time = Date.now();
+      var url = '/api/chat/activate';
+      url = url.concat('?chatId='.concat(encodeURI(chatId)));
+      url = url.concat('&userId='.concat(encodeURI(freech.data.users[chatId].id)));
+      url = url.concat('&hash='.concat(encodeURI(freech.socketMessageHash(freech.data.users[chatId].token, time))));
+      url = url.concat('&time='.concat(encodeURI(time)));
+      // Reactivate the user on the server
+      Vue.http.get(url).then(function(res) {
+        if (!res.json().error) {
+          // The user was successfully reactivated, mark as active (TODO: catch errors)
+          freech.data.users[chatId].active = true;
+          // Update presistent data store
+          freech.dataStore();
+        }
+      });
     }
   },
 
@@ -517,6 +587,7 @@ var ui = {
     },
     content: {
       shareUrl: '',
+      shareQr: '',
     },
   },
 
@@ -667,7 +738,20 @@ var ui = {
 
   // Events that open / close the share modal window (This also updates the share url)
   eventButtonToggleShare: function() {
-    ui.data.content.shareUrl = encodeURI(location.href);
+    // Find share URL and generate QR-Code if changed
+    if (ui.data.content.shareUrl !== encodeURI(location.href)) {
+      ui.data.content.shareUrl = encodeURI(location.href);
+      ui.data.content.shareQr = 'data:image/svg+xml;utf8,'.concat(new QRCode({
+        content: ui.data.content.shareUrl,
+        padding: 0,
+        width: 256,
+        height: 256,
+        color : '#011627',
+        background : '#EEEFED',
+        ecl: "M",
+      }).svg()).replace(/\#/g, '%23');
+    }
+    // Open the modal
     ui.data.modals.share = !ui.data.modals.share;
   },
 
@@ -735,6 +819,15 @@ var ui = {
     ui.data.modals.chatList = !ui.data.modals.chatList;
   },
 
+  // Event that activates / deactivates (hence: locally deletes/recovers) a chat user
+  eventButtonToggleChatUserActive: function(chatId) {
+    if (freech.chatUserIsActive(chatId)) {
+      freech.chatUserDeactivate(chatId);
+    } else {
+      freech.chatUserActivate(chatId);
+    }
+  },
+
   // Event that opens / closes the more tab
   eventButtonToggleSidebarMore: function() {
     ui.data.modals.sidebarMore = !ui.data.modals.sidebarMore;
@@ -784,6 +877,7 @@ var ui = {
 
 // The initial setup
 ui.data.loading.full = true;
+freech.urlProccessParams();
 freech.urlLoadChatId();
 freech.dataLoad();
 ui.detectSupportedFeatures();
@@ -802,6 +896,10 @@ if (freech.chatExists() && freech.chatUserExists()) {
     ui.eventMessagesLoaded(messagesAreNew);
   });
 } else if (freech.chatExists()) {
+  // Pre-Populate the user-name input if url provided data
+  if (freech.tempData.urlParams.length >= 1 && typeof freech.tempData.urlParams[0] === 'string') {
+    ui.input.newUserName = freech.tempData.urlParams[0];
+  }
   // Open the create user dialogue
   ui.data.modals.newChat = false;
   ui.data.modals.newUser = true;
@@ -822,10 +920,21 @@ setInterval(function() {
 // Timestamp filter, returns a formated time like 9:07
 Vue.filter('timestamp', function(value) {
 	if (typeof value === 'number') {
+    var months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
     var date = new Date(value);
-    var newVal = ''.concat(date.getHours()).concat(':');
-    newVal = newVal.concat(date.getMinutes() > 9 ? date.getMinutes() : '0'.concat(date.getMinutes()));
-    return newVal;
+    var dateNow = new Date();
+    var timeStamp = ''.concat(date.getHours()).concat(':');
+    timeStamp = timeStamp.concat(date.getMinutes() > 9 ? date.getMinutes() : '0'.concat(date.getMinutes()));
+    // If the value is a time yesterday, attach the date
+    if (
+      Date.now() - value > 86400000 || /* Is more than 24 hours old */
+      date.getHours() > dateNow.getHours() || /* Is a hour that had to be yesterday */
+      (date.getHours() === dateNow.getHours() && date.getMinutes() > dateNow.getMinutes()) /* IS a minute that had to be yesterday */
+    ) {
+      return ''.concat(date.getDate()).concat('. ').concat(months[date.getMonth()]).concat(' ').concat(date.getFullYear()).concat(', ').concat(timeStamp);
+    } else {
+      return timeStamp;
+    }
 	}
 	return value;
 });
@@ -843,6 +952,8 @@ Vue.filter('userclass', function(value) {
   } catch (e) {}
   // Is this user offline?
   if (index !== -1) classlist = classlist.concat(' ').concat(freech.tempData.userList[index].connected ? 'online' : 'offline');
+  // Is this user active?
+  if (index !== -1) classlist = classlist.concat(' ').concat(freech.tempData.userList[index].active ? 'active' : 'inactive');
   // It this user typing?
   if (freech.getUserIsTyping(value)) classlist = classlist.concat(' typing');
   return classlist;
@@ -922,6 +1033,7 @@ new Vue({
     buttonLoadOldMessages: ui.eventButtonLoadOldMessages,
     buttonToggleSettings: ui.eventButtonToggleSettings,
     buttonToggleChatList: ui.eventButtonToggleChatList,
+    buttonToggleChatUserActive: ui.eventButtonToggleChatUserActive,
     buttonToggleSidebarMore: ui.eventButtonToggleSidebarMore,
     scrollChat: ui.eventScrollChat,
     settingsEnableNotifications: ui.eventSettingsEnableNotifications,

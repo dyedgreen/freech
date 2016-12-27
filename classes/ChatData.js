@@ -119,6 +119,23 @@ class ChatData {
     }
   }
 
+  static chatUpdateUser(chatId, userId, newUserData, callback) {
+    switch(storeMode) {
+      case ChatData.store.SELFCONTAINED: {
+        ChatData.selfContainedChatUpdateUser(chatId, userId, newUserData, callback);
+        break;
+      }
+      case ChatData.store.MONGODB: {
+        ChatData.mongoDbChatUpdateUser(chatId, userId, newUserData, callback);
+        break;
+      }
+      default: {
+        // Selfcontained is the standard
+        ChatData.selfContainedChatUpdateUser(chatId, userId, newUserData, callback);
+      }
+    }
+  }
+
   static messagesAddMessage(chatId, messageData, messageAttachment, callback) {
     switch(storeMode) {
       case ChatData.store.SELFCONTAINED: {
@@ -229,7 +246,7 @@ class ChatData {
     }
   }
 
-  // Add a user data obj to the chat (must be supplied correctely from the chat class)
+  // Add an user data obj to the chat (must be supplied correctely from the chat class)
   static selfContainedChatAddUser(chatId, userData, callback) {
     // Try to find the chat
     if (localDataStore.chats.hasOwnProperty(chatId)) {
@@ -238,6 +255,26 @@ class ChatData {
       // localDataStore.chats[chatId].users.push(userData);
       // Success!
       callback(true);
+    } else {
+      // Chat not found
+      callback(false);
+    }
+  }
+
+  // Update an user data obj in a chat
+  static selfContainedChatUpdateUser(chatId, userId, newUserData, callback) {
+    // Try to find the chat
+    if (localDataStore.chats.hasOwnProperty(chatId)) {
+      // Update the users data
+      for (let i = 0; i < localDataStore.chats[chatId].users.length; i ++) {
+        if (localDataStore.chats[chatId].users[i].id === userId) {
+          localDataStore.chats[chatId].users[i] = newUsersData;
+          callback(true);
+          return;
+        }
+      }
+      // User not found
+      callback(false);
     } else {
       // Chat not found
       callback(false);
@@ -429,6 +466,28 @@ class ChatData {
       chatsColl.updateOne(
         { id: chatId },
         { $push: { users: userData } },
+        (err, r) => {
+          // Test if db update was successfull
+          if (!err && r.modifiedCount === 1) {
+            callback(true);
+          } else {
+            callback(false);
+          }
+      });
+    } else {
+      callback(false);
+    }
+  }
+
+  // Update an users data obj for a chat (the obj muss be supplied correctely from the chat class)
+  static mongoDbChatUpdateUser(chatId, userId, newUserData, callback) {
+    // Get the collection
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to insert the users data
+      chatsColl.updateOne(
+        { id: chatId, 'users.id': userId },
+        { $set: { 'users.$': newUserData } },
         (err, r) => {
           // Test if db update was successfull
           if (!err && r.modifiedCount === 1) {
