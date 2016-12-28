@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 
+	<!--
+   _____                   _
+  |  ___| __ ___  ___  ___| |__
+  | |_ | '__/ _ \/ _ \/ __| '_ \
+  |  _|| | |  __/  __/ (__| | | |
+  |_|  |_|  \___|\___|\___|_| |_|
+
+	-->
+
 	<head>
 		<!-- Meta Stuff -->
 		<meta charset="utf-8">
@@ -192,7 +201,7 @@
 					<span v-if="!chatEntry.active" class="notice">Deleted</span>
 					<!-- Display the actions -->
 					<span class="actions">
-						<a v-if="chatEntry.active" href="{{ chatId | shareurl }}" class="action">Join</a>
+						<a v-if="chatEntry.active && chatId !== freechTemp.chatId" href="{{ chatId | shareurl }}" class="action">Join</a>
 						<a v-if="chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Delete</a>
 						<a v-if="!chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Recover</a>
 					</span>

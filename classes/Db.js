@@ -84,9 +84,21 @@ class Db {
           Log.write(Log.DEBUG, 'Stored shared database connection');
           // Watch db events
           db.on('error', () => {
-            // Some error occured, close db
+            // Some error occured, close db, then try to revive (this only makes 100 attempts)
             this.close();
-            Log.write(Log.ERROR, 'Database error, connection closed');
+            this.revive(100);
+            // Log this
+            Log.write(Log.ERROR, 'Database error, connection closed, trying to revive (you my need to restart the server)');
+          });
+          db.on('close', () => {
+            // Test if the db was closed on purpose
+            if (this.conn.open) {
+              // Close the DB, then try to revive (this trys indefinitely)
+              this.close();
+              this.revive(0);
+              // Tell the log
+              Log.write(Log.WARNING, 'Database closed unexpectedly, trying to revive (you my need to restart the server)');
+            }
           });
 
           Log.write(Log.INFO, 'Database connected');
@@ -117,6 +129,41 @@ class Db {
       this.conn.db = null;
       Log.write(Log.INFO, 'Current database closed');
     }
+  }
+
+  /**
+  * revive() tries to
+  * open the db, in case
+  * something went wrong.
+  * It can be configured to
+  * try indefinitely, or for
+  * a set number of times.
+  *
+  * @param {number} attempts
+  */
+  revive(attempts) {
+    // Clean input
+    if (typeof attempts !== 'number') attempts = 0;
+    let currentAttempt = 0;
+    // Try to reconnect every minute
+    let reviveLoop = setInterval(() => {
+      // Increment attempt
+      currentAttempt ++;
+      // Log this
+      Log.write(Log.INFO, 'Trying to revive database, attempt', currentAttempt);
+      // Try to open the DB connection
+      this.connect(didOpen => {
+        if (didOpen) {
+          // Db did open, stop the revive
+          clearInterval(reviveLoop);
+          Log.write(Log.INFO, 'Database was revived');
+        } else if (attempts !== 0 && currentAttempt >= attempts) {
+          // Db revive limit reached, stop the revive
+          clearInterval(reviveLoop);
+          Log.write(Log.INFO, 'Database revive failed (you my need to restart the server)');
+        }
+      });
+    }, 60000);
   }
 
   /**
