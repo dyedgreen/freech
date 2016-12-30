@@ -202,6 +202,7 @@
 					<!-- Display the actions -->
 					<span class="actions">
 						<a v-if="chatEntry.active && chatId !== freechTemp.chatId" href="{{ chatId | shareurl }}" class="action">Join</a>
+						<a v-if="chatEntry.active && chatId === freechTemp.chatId" href="javascript:void(0)" v-on:click="buttonToggleChatList" class="action">Join</a>
 						<a v-if="chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Delete</a>
 						<a v-if="!chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Recover</a>
 					</span>
