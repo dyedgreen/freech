@@ -11,7 +11,7 @@ var freech = {
       notifications: false,
       loadMessagesOnScroll: true,
     },
-    v: 4,
+    v: 5,
   },
 
   // Data that is loaded on runtime
@@ -258,6 +258,7 @@ var freech = {
       chatName: 'Chat',
       token: '',
       active: true,
+      secure: true, // This means, that the user was created from this client
     };
     // Try to join the current chat
     if (freech.chatExists() && !freech.chatUserExists()) {
@@ -268,7 +269,7 @@ var freech = {
       // Make HTTP request
       Vue.http.get(url).then(function(res) {
         if (!res.json().error) {
-          // Store the data (USES VUE SET TO AVOID CHAT-LSIST REACTIVITY PROBLEM FOR NEW CHATS)
+          // Store the data (USES VUE SET TO AVOID CHAT-LIST REACTIVITY PROBLEM FOR NEW CHATS)
           user.token = res.json().data;
           Vue.set(freech.data.users, freech.tempData.chatId, user);
           // Fix state
@@ -283,6 +284,44 @@ var freech = {
       });
     } else if (freech.chatUserExists()) {
       callback(true);
+    } else {
+      callback(false);
+    }
+  },
+  chatLogInUser(name, userId, userToken, callback) {
+    // If supplied a name, userId, userToken; this will try to activate the user (if active->true; else->false)
+    if (freech.chatExists() && typeof name === 'string' && name.length > 0) {
+      // Send activation request to server
+      var time = Date.now();
+      var url = '/api/chat/activate';
+      url = url.concat('?chatId='.concat(encodeURI(freech.tempData.chatId)));
+      url = url.concat('&userId='.concat(encodeURI(userId)));
+      url = url.concat('&hash='.concat(encodeURI(freech.socketMessageHash(userToken, time))));
+      url = url.concat('&time='.concat(encodeURI(time)));
+      // Make HTTP request
+      Vue.http.get(url).then(function(res) {
+        if (!res.json().error && res.json().data === true) {
+          // Create the user
+          var user = {
+            id: ''.concat(userId),
+            name: ''.concat(name),
+            chatName: 'Chat',
+            token: ''.concat(userToken),
+            active: true,
+            secure: false, // This means, that the user was NOT created from this client
+          };
+          // Store the data (USES VUE SET TO AVOID CHAT-LIST REACTIVITY PROBLEM FOR NEW CHATS)
+          Vue.set(freech.data.users, ''.concat(freech.tempData.chatId), user);
+          // Fix state
+          freech.dataStore();
+          // Call the callback
+          callback(true);
+        } else {
+          callback(false);
+        }
+      }, function() {
+        callback(false);
+      });
     } else {
       callback(false);
     }
@@ -894,6 +933,37 @@ if (freech.chatExists() && freech.chatUserExists()) {
   }, function(messagesAreNew) {
     // Chat recived new/old message
     ui.eventMessagesLoaded(messagesAreNew);
+  });
+} else if (freech.chatExists() && freech.tempData.urlParams.length === 3) {
+  // A full user is supplied, try to log in. Revert to pre-population if unsuccessful
+  // URL-PARAMS: NAME-USERID-USERTOKEN
+  var param_name = ''.concat(freech.tempData.urlParams[0]);
+  var param_userId = ''.concat(freech.tempData.urlParams[1]);
+  var param_userToken = ''.concat(freech.tempData.urlParams[2]);
+  freech.chatLogInUser(param_name, param_userId, param_userToken, function (didLogIn) {
+    if (didLogIn) {
+      // Open the Chat (CODE COPIED FROM CASE1)
+      freech.socketConnect(function() {
+        // Chat opened
+        ui.data.loading.full = false;
+      }, function() {
+        // Chat closed
+        ui.data.loading.full = false;
+        ui.data.modals.disconnect = true;
+      }, function(messagesAreNew) {
+        // Chat recived new/old message
+        ui.eventMessagesLoaded(messagesAreNew);
+      });
+    } else {
+      // Show (Pre-Populated) user-name input (CODE COPIED FROM CASE3)
+      if (freech.tempData.urlParams.length >= 1 && typeof freech.tempData.urlParams[0] === 'string') {
+        ui.input.newUserName = freech.tempData.urlParams[0];
+      }
+      // Open the create user dialogue
+      ui.data.modals.newChat = false;
+      ui.data.modals.newUser = true;
+      ui.data.loading.full = false;
+    }
   });
 } else if (freech.chatExists()) {
   // Pre-Populate the user-name input if url provided data

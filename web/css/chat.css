@@ -925,7 +925,7 @@ html {
 	box-shadow:0 0 0 10px rgba(0,0,0,0.2);
 }
 .modal .chat-list h1 {
-	width:100%;
+	width:50%;
 	height:40px;
 	display:block;
 	
@@ -940,7 +940,7 @@ html {
 	overflow:hidden;
 }
 .modal .chat-list h2 {
-	width:100%;
+	width:50%;
 	height:20px;
 	display:block;
 	
@@ -952,6 +952,9 @@ html {
 	
 	white-space:nowrap;
 	overflow:hidden;
+}
+.modal .chat-list h2 .secure {
+  color:#FF9F1C;
 }
 .modal .chat-list .notice {
 	width:100%;
@@ -981,7 +984,6 @@ html {
 	
 	text-align:right;
 	
-	opacity:0;
 	white-space:nowrap;
 	overflow:hidden;
 	transition:all .1s;
@@ -991,7 +993,7 @@ html {
 	height:50px;
 	padding:0 25px;
 	display:inline-block;
-	margin:0 20px;
+	margin:0 5px 0 10px;
 	
 	font-size:20px;
 	font-weight:700;
@@ -1005,13 +1007,7 @@ html {
 	border-radius:10px;
 	
 	cursor:pointer;
-	transition:all .3s;
-}
-.modal .chat-list:hover .actions {
-	opacity:1;
-}
-.modal .chat-list:hover .actions .action {
-	margin:0 10px;
+	transition:all .1s;
 }
 .modal .chat-list .actions .action:hover {
 	color:rgba(0,0,0,0.9);

@@ -8,3 +8,4 @@ secret/
 # Ignore the test file and install instructions
 test.js
 install.txt
+api.txt

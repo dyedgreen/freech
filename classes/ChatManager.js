@@ -185,7 +185,7 @@ class ChatManager {
                 // If the chat was opened, try to join, else abort
                 if (success) {
                   // Activate the user
-                  let userActivated = this.chats[chatIndex].changeUserActive(userId, hash, time, true);
+                  let userActivated = this.chats[this.indexOfOpenChat(chatId)].changeUserActive(userId, hash, time, true);
                   // Send Api response
                   ApiResponse.sendData(res, userActivated, !userActivated);
                 } else {
