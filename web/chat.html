@@ -68,12 +68,12 @@
 					<!-- Sender & Timestamp -->
 					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
 					<!-- Message text -->
-					<p v-if="message.text">{{{ message.text | message }}}</p>
+					<p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
 					<!-- Spacing -->
-					<span v-if="message.text && message.attachment === 1" style="display:block"></span>
+					<span v-if="message.hasOwnProperty('text') && message.hasOwnProperty('image')" style="display:block"></span>
 					<!-- Attached image -->
-					<img v-if="message.attachment === 1 && message.image" v-bind:src="message.image">
-					<span v-if="message.attachment === 1 && !message.image" class="image-loading">Loading ...</span>
+					<img v-if="message.hasOwnProperty('image') && message.image !== true" v-bind:src="message.image">
+					<span v-if="message.hasOwnProperty('image') && message.image === true" class="image-loading">Loading ...</span>
 				</div>
 
 				<!-- A sending message -->

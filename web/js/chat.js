@@ -578,7 +578,7 @@ var freech = {
   attachmentGetImages: function(callback) {
     // Go through all messages and request the missing images
     freech.tempData.messages.forEach(function(message, index) {
-      if (message.attachment === 1 && !message.hasOwnProperty('image')) {
+      if (message.hasOwnProperty('image') && message.image === true) {
         // Loads the message attachment image from the server
         var path = '/api/chat/attachment/image/'.concat(freech.tempData.chatId).concat('/').concat(message.id);
         Vue.http.get(path).then(function(res) {

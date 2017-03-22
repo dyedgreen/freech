@@ -5,626 +5,392 @@
 const Db = require('./Db.js');
 const Log = require('./Log.js');
 
-// The self-contained data store and store mode
-let storeMode = 0;
-let localDataStore = {
-  chats: {},
-  messages: {},
-  attachments: {},
-};
 
-// The database connection instance
-let db = null;
+// Constants
+let db = new Db();
+
 
 /**
 * ChatData
 *
-* This is the chat data abstraction interface. It sits between the
-* ChatManager and Chat interfaces, which handle the client <-> chat
-* interactions, and the chat data store. By doing this, the ChatData
-* class allows the Freech Instance to use different modes of data
-* storage (e.g.) SelfContained within the proccess memory or in a DB.
+* This class retrives data from the db and stores data
+* to the db.
+* Notice that the data that is loaded, will be checked,
+* while the data that is written, is expected to be
+* valid.
 *
-* Chats that are currently actively used are held (w. meta data) in the
-* chat manager class. The chat messages and inactive chats are only stored
-* in the respective interface choosen.
-*
-* Note that the ChatData class DOES NOT take care of the data validation!
-*
-* Chat Data:
-* chatId -> id, messageCount, users, name
-*
-* Messages Data:
-* chatId -> [ id, attachment(0:none, 1:image, ...), text, time, userId ]
-*
-* Attachments:
-* chatId -> { id(is the id of the message) } -> data
-*
-* TODO: Add logging(!)
+* TODO: Some more logging is needed.
 */
 class ChatData {
 
   /**
-  * Functions to retrive
-  * data. These functions
-  * will connect to the
-  * appropriate store.
+  * existsChat() does
+  * the same as loadChat,
+  * but it won't return any
+  * data.
+  *
+  * @param {string} chatId
+  * @param {function} callback
   */
-
-  static chatGetData(chatId, callback) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedChatGetData(chatId, callback);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbChatGetData(chatId, callback);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedChatGetData(chatId, callback);
-      }
-    }
-  }
-
-  static chatCreate(chatId, name, callback) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedChatCreate(chatId, name, callback);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbChatCreate(chatId, name, callback);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedChatCreate(chatId, name, callback);
-      }
-    }
-  }
-
-  static chatDelete(chatId, callback) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedChatDelete(chatId, callback);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbChatDelete(chatId, callback);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedChatDelete(chatId, callback);
-      }
-    }
-  }
-
-  static chatAddUser(chatId, userData, callback) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedChatAddUser(chatId, userData, callback);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbChatAddUser(chatId, userData, callback);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedChatAddUser(chatId, userData, callback);
-      }
-    }
-  }
-
-  static chatUpdateUser(chatId, userId, newUserData, callback) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedChatUpdateUser(chatId, userId, newUserData, callback);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbChatUpdateUser(chatId, userId, newUserData, callback);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedChatUpdateUser(chatId, userId, newUserData, callback);
-      }
-    }
-  }
-
-  static messagesAddMessage(chatId, messageData, messageAttachment, callback) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedMessagesAddMessage(chatId, messageData, messageAttachment, callback);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbMessagesAddMessage(chatId, messageData, messageAttachment, callback);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedMessagesAddMessage(chatId, messageData, messageAttachment, callback);
-      }
-    }
-  }
-
-  static messagesGetOld(chatId, count, lastMessageId, loadedMessagesCount, callback) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedMessagesGetOld(chatId, count, lastMessageId, callback);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbMessagesGetOld(chatId, count, loadedMessagesCount, callback);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedMessagesGetOld(chatId, count, lastMessageId, callback);
-      }
-    }
-  }
-
-  static attachmentsPipeImage(chatId, messageId, writeStream) {
-    switch(storeMode) {
-      case ChatData.store.SELFCONTAINED: {
-        ChatData.selfContainedAttachmentsPipeImage(chatId, messageId, writeStream);
-        break;
-      }
-      case ChatData.store.MONGODB: {
-        ChatData.mongoDbAttachmentsPipeImage(chatId, messageId, writeStream);
-        break;
-      }
-      default: {
-        // Selfcontained is the standard
-        ChatData.selfContainedAttachmentsPipeImage(chatId, messageId, writeStream);
-      }
-    }
-  }
-
-  /**
-  * Functions that perform
-  * the respective storage
-  * operations for the mode:
-  * SELFCONTAINED
-  */
-
-  // Return the chat data to a callback (can also emulate the chat-exists function)
-  static selfContainedChatGetData(chatId, callback) {
-    // Try to find the chat in the local list and return data if successfull
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      callback(localDataStore.chats[chatId]);
-    } else {
-      // Chat not found
-      callback(false);
-    }
-  }
-
-  // Store the data for a new chat / create it's data set
-  static selfContainedChatCreate(chatId, name, callback) {
-    // Test if chat already exists (and stop creatin if it does)
-    if (!localDataStore.chats.hasOwnProperty(chatId)) {
-      // Set up the data obj
-      const chatData = {
-        id: chatId,
-        name,
-        messageCount: 0,
-        users: [],
-      };
-      // Push them to the data store
-      localDataStore.chats[chatId] = chatData;
-      // Create the holders for the messages and the attachment data
-      localDataStore.messages[chatId] = [];
-      localDataStore.attachments[chatId] = {};
-      // Chat was created!
-      callback(true);
-    } else {
-      // Chat already exists
-      callback(false);
-    }
-  }
-
-  // Delete the data for one chat / remove a given chat
-  static selfContainedChatDelete(chatId, callback) {
-    // Find the chat in the data
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      // Clear the chat data
-      delete localDataStore.messages[chatId];
-      delete localDataStore.attachments[chatId];
-      // Remove the chat
-      delete localDataStore.chats[chatId];
-      // Success!
-      callback(true);
-    } else {
-      // The chat was not found
-      callback(false);
-    }
-  }
-
-  // Add an user data obj to the chat (must be supplied correctely from the chat class)
-  static selfContainedChatAddUser(chatId, userData, callback) {
-    // Try to find the chat
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      // Add the users data (As this is a copy, directely linked to the in-process data for self
-      // contained service, this does not need to be added!)
-      // localDataStore.chats[chatId].users.push(userData);
-      // Success!
-      callback(true);
-    } else {
-      // Chat not found
-      callback(false);
-    }
-  }
-
-  // Update an user data obj in a chat
-  static selfContainedChatUpdateUser(chatId, userId, newUserData, callback) {
-    // Try to find the chat
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      // Update the users data
-      for (let i = 0; i < localDataStore.chats[chatId].users.length; i ++) {
-        if (localDataStore.chats[chatId].users[i].id === userId) {
-          localDataStore.chats[chatId].users[i] = newUsersData;
-          callback(true);
-          return;
-        }
-      }
-      // User not found
-      callback(false);
-    } else {
-      // Chat not found
-      callback(false);
-    }
-  }
-
-  // Store a message (and its attached image, if supplied)
-  static selfContainedMessagesAddMessage(chatId, messageData, messageAttachment, callback) {
-    // Fetch the chat
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      // Add the message to the messages array
-      localDataStore.messages[chatId].push(messageData);
-      // Add the attachment to the attachment data
-      if (messageAttachment !== false) {
-        localDataStore.attachments[chatId][messageData.id] = messageAttachment;
-      }
-      // Increment the message count
-      localDataStore.chats[chatId].messageCount ++;
-      // We added the message
-      callback(true);
-    } else {
-      // No chat to be found
-      callback(false);
-    }
-  }
-
-  // Return a bunch of old messages (uses the messages loaded count, instead of last msg id)
-  static selfContainedMessagesGetOld(chatId, count, lastMessageId, callback) {
-    // Test if chat exists
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      // Find the cound older messages or the count latest, if lastMessageId is no string
-      if (typeof lastMessageId !== 'string') {
-        // Count latest messages
-        callback(localDataStore.messages[chatId].slice(-count));
-      } else {
-        // Find the lastMessageId message and return the cound older messages
-        let messages = [];
-        let pastLastMessage = false;
-        // Start counting at end
-        for (let i = localDataStore.chats[chatId].messageCount - 1; i >= 0 && messages.length < count; i --) {
-          if (pastLastMessage) {
-            messages.unshift(localDataStore.messages[chatId][i]);
-          } else {
-            if (localDataStore.messages[chatId][i].id == lastMessageId) pastLastMessage = true;
-          }
-        }
-        // Return the found messages
-        callback(messages);
-      }
-    } else {
-      // No chat there
-      callback(false);
-    }
-  }
-
-  // Pipe the attachment data through a socket, if the data exists (for an image attachment)
-  static selfContainedAttachmentsPipeImage(chatId, messageId, writeStream) {
-    // Find chat
-    if (localDataStore.chats.hasOwnProperty(chatId)) {
-      // Find the attachment
-      if (localDataStore.attachments[chatId].hasOwnProperty(messageId)) {
-        // Set the appropriate headers
-        writeStream.writeHead(200, {
-          'Content-type': 'data:image',
-        });
-        // Return the data to the stream
-        writeStream.end(localDataStore.attachments[chatId][messageId]);
-      }
-    } else {
-      // Close the stream
-      writeStream.end();
-    }
-  }
-
-  /**
-  * Functions that perform
-  * the respective storage
-  * operations for the mode:
-  * MONGODB
-  */
-
-  // A 'private' helper function (to not retrive too much data using ChatGetData)
-  static mongoDbChatExists(chatId, callback) {
-    // Get the collection
-    let chatsColl = db.collection('chats');
-    if (chatsColl) {
-      // Try to find the entry
-      chatsColl.findOne(
-        { id: chatId },
+  static existsChat(chatId, callback) {
+    // Test if the db is connected
+    if (db.collection('chats')) {
+      // Load the data from the DB
+      db.collection('chats').findOne(
+        { id: ''.concat(chatId) },
         { fields: { id: 1 } },
         (err, doc) => {
-          // If the document was found, return true
-          if (!err && doc) {
-            callback(true);
+          if (!err && doc && typeof doc === 'object') {
+            // Chat does exist
+            if (typeof callback === 'function') callback(true);
           } else {
-            callback(false);
+            // No chat found
+            if (typeof callback === 'function') callback(false);
           }
       });
     } else {
-      callback(false);
+      // No data could be found
+      setImmediate(() => {
+        if (typeof callback === 'function') callback(false);
+      });
     }
   }
 
-  // Return the chat data to a callback (can also emulate the chat-exists function)
-  static mongoDbChatGetData(chatId, callback) {
-    // Get the collection
-    let chatsColl = db.collection('chats');
-    if (chatsColl) {
-      // Try to find the entry
-      chatsColl.findOne(
-        { id: chatId },
+  /**
+  * loadChat() will
+  * return a chats data
+  * from the db.
+  * If the chat data was not
+  * found, the callback
+  * recives false.
+  *
+  * @param {string} chatId
+  * @param {function} callback
+  */
+  static loadChat(chatId, callback) {
+    // Test if the db is connected
+    if (db.collection('chats')) {
+      // Load the data from the DB
+      db.collection('chats').findOne(
+        { id: ''.concat(chatId) },
         { fields: { id: 1, name: 1, messageCount: 1, users: 1 } },
         (err, doc) => {
-          // If the document was found, return its data
-          if (!err && doc) {
-            callback(doc);
+          if (!err && doc && typeof doc === 'object') {
+            // Return a safe chat data obj
+            let data = {};
+            // Validate all the data
+            data.id = ''.concat(chatId);
+            data.name = doc.hasOwnProperty('name') ? ''.concat(doc.name) : 'Chat';
+            data.users = doc.hasOwnProperty('users') ? doc.users : []; // TODO: Validate this in the future (if there are changes)
+            data.messageCount = doc.hasOwnProperty('messageCount') ? doc.messageCount : 0;
+            // Return the chat data to the callback
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(data);
+            });
+            // Log about this
+            Log.write(Log.DEBUG, 'Chat data loaded for id', chatId);
           } else {
-            callback(false);
+            // No data could be found
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(false);
+            });
+            // Log about this
+            Log.write(Log.DEBUG, 'Chat data did not load for id', chatId);
           }
       });
     } else {
-      callback(false);
+      // No data could be found
+      setImmediate(() => {
+        if (typeof callback === 'function') callback(false);
+      });
+      // Log this
+      Log.write(Log.DEBUG, 'Chat data did not load for id', chatId);
     }
   }
 
-  // Store the data for a new chat / create it's data set
-  static mongoDbChatCreate(chatId, name, callback) {
-    // Test if chat already exists (and stop creating if it does)
-    ChatData.mongoDbChatExists(chatId, exists => {
+  /**
+  * loadChatMessages() will
+  * retrive an exerpt from
+  * all the messages send to
+  * the chat.
+  * The callback allways recives
+  * an array, containing 0 or more
+  * valid message objects.
+  *
+  * @param {string} chatId
+  * @param {number} count
+  * @param {number} loadedMessagesCount
+  * @param {function} callback
+  */
+  static loadChatMessages(chatId, count, loadedMessagesCount, callback) {
+    // Test if the db is connected
+    if (db.collection('chats')) {
+      db.collection('chats').findOne(
+        { id: ''.concat(chatId) },
+        // Filter the messages array (make sure to exclude everything but messages!)
+        { fields: { messages: { $slice: [ -(loadedMessagesCount + count), count ] }, id: 0, name: 0, messageCount: 0, users: 0 } },
+        (err, doc) => {
+          // Proccess db results
+          let messages = [];
+          if (!err && typeof doc === 'object' && doc.hasOwnProperty('messages')) {
+            // Create the array with the message content
+            doc.messages.forEach(dbEntry => {
+              if (typeof dbEntry === 'object') {
+                // Add all the available required message fields
+                let message = {
+                  id: ''.concat(dbEntry.id),
+                  userId: ''.concat(dbEntry.userId),
+                  time: ''.concat(dbEntry.time),
+                };
+                // Add all the available optional message fields
+                if (dbEntry.hasOwnProperty('text')) message.text = ''.concat(dbEntry.text);
+                if (dbEntry.hasOwnProperty('image')) message.image = true;
+                // Add the message to the list
+                messages.push(message);
+              }
+            });
+          }
+          // Return messages to callback
+          setImmediate(() => {
+            if (typeof callback === 'function') callback(messages);
+          });
+      });
+    } else {
+      // No messages could be loaded
+      setImmediate(() => {
+        if (typeof callback === 'function') callback([]);
+      });
+      // Log about this
+      Log.write(Log.DEBUG, 'Chat messages did not load for chat with id', chatId);
+    }
+  }
+
+  /**
+  * addChat() will take
+  * the data for a given
+  * chat and store it to
+  * the database.
+  *
+  * @param {string} chatId
+  * @param {object} chat
+  * @param {function} callback
+  */
+  static addChat(chatId, chat, callback) {
+    // Test if the chat already exists
+    ChatData.existsChat(chatId, exists => {
       if (!exists) {
-        // Set up the data obj ()attachmnet
-        const chatData = {
-          id: chatId,
-          name,
-          messageCount: 0,
-          users: [],
-          // This field of the doc contains the messages and is not returned by GetChatData
-          messages: [],
-        };
-        // Write chat to db
-        let chatsColl = db.collection('chats');
-        if (chatsColl) {
-          chatsColl.insertOne(chatData, (err, r) => {
+        // Store the chat
+        if (db.collection('chats')) {
+          db.collection('chats').insertOne(chat, (err, r) => {
             if (err === null && r.insertedCount === 1) {
-              callback(true);
+              if (typeof callback === 'function') callback(true);
             } else {
-              callback(false);
+              if (typeof callback === 'function') callback(false);
             }
           });
         } else {
-          callback(false);
+          // Db error
+          setImmediate(() => {
+            if (typeof callback === 'function') callback(false);
+          });
+          // Log about this
+          Log.write(Log.DEBUG, 'Chat could not be stored with id', chatId);
         }
       } else {
-        callback(false);
+        // The chat already exists, return false
+        setImmediate(() => {
+          if (typeof callback === 'function') callback(false);
+        });
+        // Log about this
+        Log.write(Log.DEBUG, 'Chat already exists for id', chatId);
       }
     });
   }
 
-  // Delete the data for one chat / remove a given chat
-  static mongoDbChatDelete(chatId, callback) {
-    // Get the collection
-    let chatsColl = db.collection('chats');
-    if (chatsColl) {
-      // Try to find the entry
-      chatsColl.deleteOne(
-        { id: chatId },
+  /**
+  * addChatMessage() will
+  * store a new message to
+  * the database. This will
+  * not validate the data!
+  * TODO: Attachments are currently
+  * strings, maybe make them streams
+  * later!
+  *
+  * @param {string} chatId
+  * @param {object} message
+  * @param {string} attachment (any attachment data, that should be stored for the messages id)
+  * @param {function} callback
+  */
+  static addChatMessage(chatId, message, attachment, callback) {
+    // Test it the db is connected
+    if (db.collection('chats')) {
+      db.collection('chats').updateOne(
+        { id: ''.concat(chatId) },
+        { $push: { messages: message }, $inc: { messageCount: 1 } },
         (err, r) => {
-          // If the document was deleted, drop its bucket and return true
-          if (!err && r.deletedCount === 1) {
-            db.bucket(chatId).drop(err => {
-              // Chat and bucket are gone!
-              callback(true);
-            });
-          } else {
-            callback(false);
-          }
-      });
-    } else {
-      callback(false);
-    }
-  }
-
-  // Add a user data obj to the chat (must be supplied correctely from the chat class)
-  static mongoDbChatAddUser(chatId, userData, callback) {
-    // Get the collection
-    let chatsColl = db.collection('chats');
-    if (chatsColl) {
-      // Try to insert the users data
-      chatsColl.updateOne(
-        { id: chatId },
-        { $push: { users: userData } },
-        (err, r) => {
-          // Test if db update was successfull
+          // Test if the db update did work
           if (!err && r.modifiedCount === 1) {
-            callback(true);
-          } else {
-            callback(false);
-          }
-      });
-    } else {
-      callback(false);
-    }
-  }
-
-  // Update an users data obj for a chat (the obj muss be supplied correctely from the chat class)
-  static mongoDbChatUpdateUser(chatId, userId, newUserData, callback) {
-    // Get the collection
-    let chatsColl = db.collection('chats');
-    if (chatsColl) {
-      // Try to insert the users data
-      chatsColl.updateOne(
-        { id: chatId, 'users.id': userId },
-        { $set: { 'users.$': newUserData } },
-        (err, r) => {
-          // Test if db update was successfull
-          if (!err && r.modifiedCount === 1) {
-            callback(true);
-          } else {
-            callback(false);
-          }
-      });
-    } else {
-      callback(false);
-    }
-  }
-
-  // Store a message (and its attached image, if supplied)
-  static mongoDbMessagesAddMessage(chatId, messageData, messageAttachment, callback) {
-    // Get the collection
-    let chatsColl = db.collection('chats');
-    if (chatsColl) {
-      // Try to insert the message data
-      chatsColl.updateOne(
-        { id: chatId },
-        { $push: { messages: messageData }, $inc: { messageCount: 1 } },
-        (err, r) => {
-          // Test if db update was successfull
-          if (!err && r.modifiedCount === 1) {
-            if (messageData.attachment === 1) {
-              // Store the attached image
+            // If there is an attachment, store it
+            if (attachment) {
               let bucket = db.bucket(chatId);
               if (bucket) {
-                let uploadStream = bucket.openUploadStream(messageData.id);
+                let uploadStream = bucket.openUploadStream(message.id);
                 uploadStream.on('finish', () => {
-                  callback(true);
+                  // Message added, attachment data added.
+                  setImmediate(() => {
+                    if (typeof callback === 'function') callback(true);
+                  });
                 }).on('error', (err) => {
-                  // FIXME: Do something about this later
-                  callback(true);
+                  // Message added, attachment data failed to add. FIXME: Do something about this!
+                  setImmediate(() => {
+                    if (typeof callback === 'function') callback(true);
+                  });
                 });
-                uploadStream.end(messageAttachment);
+                uploadStream.end(''.concat(attachment));
               } else {
-                // FIXME: Do something about this later
-                callback(true);
+                // Message added, attachment data failed to add. FIXME: Do something about this!
+                setImmediate(() => {
+                  if (typeof callback === 'function') callback(true);
+                });
               }
             } else {
-              // We are done (no image needed)
-              callback(true);
+              // Message without attachment data added successfully!
+              setImmediate(() => {
+                if (typeof callback === 'function') callback(true);
+              });
             }
           } else {
-            callback(false);
+            // No messages could be added
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(false);
+            });
           }
       });
     } else {
-      callback(false);
+      // No messages could be added
+      setImmediate(() => {
+        if (typeof callback === 'function') callback(false);
+      });
+      // Log about this
+      Log.write(Log.DEBUG, 'Chat messages was not added for chat with id', chatId);
     }
   }
 
-  // Return a bunch of old messages
-  static mongoDbMessagesGetOld(chatId, count, loadedMessagesCount, callback) {
-    // Get the collection
+  /**
+  * addChatUser() will
+  * store the data for a
+  * new user to the chat.
+  * This will not validate
+  * the user.
+  *
+  * @param {string} chatId
+  * @param {object} user
+  * @param {function} callback
+  */
+  static addChatUser(chatId, user, callback) {
+    // Test Db connection
+    if (db.collection('chats')) {
+      // Try to insert the users data
+      db.collection('chats').updateOne(
+        { id: ''.concat(chatId) },
+        { $push: { users: user } },
+        (err, r) => {
+          // Test if db update was successfull
+          if (!err && r.modifiedCount === 1) {
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(true);
+            });
+          } else {
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(false);
+            });
+          }
+      });
+    } else {
+      // User could not be added
+      setImmediate(() => {
+        if (typeof callback === 'function') callback(false);
+      });
+      // Log about this
+      Log.write(Log.DEBUG, 'User could not be added for chat with id', chatId);
+    }
+  }
+
+  /**
+  * updateChatUser() will
+  * update the data for
+  * a given user. This will
+  * not validate the new data.
+  *
+  * @param {string} chatId
+  * @param {string} userId
+  * @param {object} newUser
+  * @param {function} callback
+  */
+  static updateChatUser(chatId, userId, newUser, callback) {
+    // Try to connect to the database
     let chatsColl = db.collection('chats');
     if (chatsColl) {
-      // Try to find the entry
-      chatsColl.findOne(
-        { id: chatId },
-        // Filter the messages array (make sure to exclude everything but messages!)
-        { fields: { messages: { $slice: [ -(loadedMessagesCount + count), count ] }, id: 0, name: 0, messageCount: 0, users: 0 } },
-        (err, doc) => {
-          // If the document was found, return its data
-          if (!err && doc.hasOwnProperty('messages')) {
-            callback(doc.messages);
+      // Try to insert the users data
+      chatsColl.updateOne(
+        { id: ''.concat(chatId), 'users.id': ''.concat(userId) },
+        { $set: { 'users.$': newUser } },
+        (err, r) => {
+          // Test if db update was successfull
+          if (!err && r.modifiedCount === 1) {
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(true);
+            });
           } else {
-            callback(false);
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(false);
+            });
           }
       });
     } else {
-      callback(false);
+      // User could not be updated
+      setImmediate(() => {
+        if (typeof callback === 'function') callback(false);
+      });
+      // Log about this
+      Log.write(Log.DEBUG, 'User could not be updated for chat with id', chatId);
     }
   }
 
-  // Pipe the attachment data through a socket, if the data exists (for an image attachment)
-  static mongoDbAttachmentsPipeImage(chatId, messageId, writeStream) {
+  /**
+  * pipeAttachment() will pipe
+  * the attachment of a given
+  * message to a stream.
+  * If the attachment does not
+  * exist, this will terminate
+  * the stream.
+  *
+  * @param {string} chatId
+  * @param {string} messageId
+  * @param {stream} stream
+  */
+  static pipeAttachment(chatId, messageId, stream) {
     // Get the neccessary bucket
-    let bucket = db.bucket(chatId);
+    let bucket = db.bucket(''.concat(chatId));
     if (bucket) {
       // Test if file exists
-      bucket.find({ filename: messageId }, { fields: { filename: 1 } }).count({ limit: 1 }, (err, count) => {
+      bucket.find({ filename: ''.concat(messageId) }, { fields: { filename: 1 } }).count({ limit: 1 }, (err, count) => {
         if (!err && count === 1) {
           // File exists, stream contents
-          bucket.openDownloadStreamByName(messageId).pipe(writeStream);
+          bucket.openDownloadStreamByName(''.concat(messageId)).pipe(stream);
         } else {
-          // No file, abort
-          writeStream.end();
+          // No file, stop the stream
+          stream.end();
         }
       });
     } else {
-      // No bucket, abort
-      writeStream.end();
-    }
-  }
-
-  /**
-  * store() returns
-  * an object of all
-  * avilable storage
-  * methods.
-  *
-  * @return {obj}
-  */
-  static get store() {
-    return {
-      SELFCONTAINED: 0,
-      MONGODB: 1,
-    };
-  }
-
-  /**
-  * setStore() sets
-  * the store method
-  * to be used by the
-  * global data store.
-  */
-  static setStore(store) {
-    if (typeof store === 'number' && store >= 0 && store <= 1) {
-      // Change mode, if the mode is supported
-      storeMode = Math.floor(store);
-      // Open the database if connected / perform other necessary setup things
-      if (storeMode == ChatData.store.MONGODB) {
-        // Open the database
-        if (db === null) db = new Db();
-      } else {
-        // Close the DB
-        if (db !== null) db.close();
-        db = null;
-      }
+      // No bucket, stop the stream
+      stream.end();
     }
   }
 
 }
 
 
-// Exports
+// Export
 module.exports = ChatData;

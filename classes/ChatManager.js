@@ -203,12 +203,12 @@ class ChatManager {
           }
           break;
         }
-        // Serve a chat attachment (image)
+        // Serve a chat attachment (currently only images)
         case 'attachment': {
           // format: api/chat/attachment/image/chatId/messageId
           if (url.path.length == 6 && url.path[3] == 'image') {
             // Try to fetch the image and send it to the request
-            ChatData.attachmentsPipeImage(url.path[4], url.path[5], res);
+            ChatData.pipeAttachment(url.path[4], url.path[5], res);
             return;
           }
           break;
@@ -276,16 +276,14 @@ class ChatManager {
   * @param {function} callback
   */
   openChat(chatId, callback) {
-    // Load the chat from memory
-    ChatData.chatGetData(chatId, data => {
-      if (data) {
-        // Create the chat and add it to the chat list
-        this.chats.push(new Chat(data, chatId => {
-          this.closeChat(chatId);
-        }));
+    // Load the chat data
+    let chatData = new Chat(chatId, () => this.closeChat(chatId), success => {
+      if (success) {
+        // The chat did open, store it and pass true
+        this.chats.push(chatData);
         callback(true);
       } else {
-        // The chat loading failed
+        // Chat didn't open
         callback(false);
       }
     });

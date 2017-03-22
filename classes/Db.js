@@ -88,7 +88,7 @@ class Db {
             this.close();
             this.revive(100);
             // Log this
-            Log.write(Log.ERROR, 'Database error, connection closed, trying to revive (you my need to restart the server)');
+            Log.write(Log.ERROR, 'Database error, connection closed, trying to revive (you may need to restart the server)');
           });
           db.on('close', () => {
             // Test if the db was closed on purpose
@@ -97,7 +97,7 @@ class Db {
               this.close();
               this.revive(0);
               // Tell the log
-              Log.write(Log.WARNING, 'Database closed unexpectedly, trying to revive (you my need to restart the server)');
+              Log.write(Log.WARNING, 'Database closed unexpectedly, trying to revive (you may need to restart the server)');
             }
           });
 

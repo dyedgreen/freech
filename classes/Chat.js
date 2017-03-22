@@ -8,6 +8,7 @@ const ChatData = require('./ChatData.js');
 const User = require('./User.js');
 const NetworkMessageType = require('./NetworkMessageType.js');
 
+
 /**
 * Chat
 *
@@ -20,19 +21,38 @@ const NetworkMessageType = require('./NetworkMessageType.js');
 */
 class Chat {
 
-  constructor(chatData, destructor) {
-    // Get the chat id and name
-    this.id = chatData.id;
-    this.name = chatData.name;
-    // Set up the needed data structure
-    this.users = chatData.users;
-    this.messageCount = chatData.messageCount;
+  constructor(chatId, destructor, callback) {
+    // Set the chat id and empty data
+    this.id = chatId;
+    this.name = '';
+    this.users = [];
+    this.messageCount = 0;
     this.connections = [];
-    // Schedule destructor (to auto-close chat after x-time, if no users are connected)
-    this.destructor = { timeout: null, callback: destructor };
-    this.scheduleDestructor();
-    // Log about this
-    Log.write(Log.INFO, 'Chat created with id', this.id);
+    this.destructor = { timeout: null, callback: null };
+    // Try to load the chat data from the DB
+    ChatData.loadChat(this.id, data => {
+      // Test if the data did load
+      if (data) {
+        // Store the data
+        this.name = data.name;
+        this.users = data.users;
+        this.messageCount = data.messageCount;
+        // Schedule destructor (to auto-close chat after x-time, if no users are connected)
+        this.destructor.callback = destructor;
+        this.scheduleDestructor();
+        // Tell the callback, that the chat was created
+        setImmediate(() => {
+          if (typeof callback === 'function') callback(true);
+        });
+        // Log about this
+        Log.write(Log.INFO, 'Chat opened with id', this.id);
+      } else {
+        // Tell callback, that chat was not created (the destructor will not be called)
+        setImmediate(() => {
+          if (typeof callback === 'function') callback(false);
+        });
+      }
+    });
   }
 
   /**
@@ -126,53 +146,54 @@ class Chat {
   */
   proccessSocketMessage(userId, socket, data) {
     // Try to decode the json data
+    let dataObject = {};
+    let messageType = -1;
     try {
       // Get the message
-      const dataObject = JSON.parse(data);
-      const messageType = dataObject.hasOwnProperty('type') ? dataObject.type : -1;
-
-      // Proccess the message correctly
-      switch (messageType) {
-        // The user wants to send a new message
-        case NetworkMessageType.USER.MESSAGE: {
-          // Socket message format:
-          // { type, time, hash, messageText, messageImage }
-          if (
-            dataObject.hasOwnProperty('time') &&
-            dataObject.hasOwnProperty('hash') &&
-            dataObject.hasOwnProperty('messageText') &&
-            dataObject.hasOwnProperty('messageImage')
-          ) {
-            this.addMessage(dataObject.messageText, dataObject.messageImage, userId, dataObject.hash, dataObject.time);
-          }
-          break;
-        }
-        // The user wants to load existing messages
-        case NetworkMessageType.USER.LOADMESSAGES: {
-          // Socket message format:
-          // { type, count, lastMessageId }
-          const count = dataObject.hasOwnProperty('count') && typeof dataObject.count === 'number' ? Math.floor(dataObject.count) : 0;
-          const lastMessageId = dataObject.hasOwnProperty('lastMessageId') && typeof dataObject.lastMessageId === 'string' ? dataObject.lastMessageId : false;
-          const loadedMessagesCount = dataObject.hasOwnProperty('loadedMessagesCount') && typeof dataObject.loadedMessagesCount === 'number' ? Math.floor(dataObject.loadedMessagesCount) : 0;
-          this.sendMessages(socket, count, lastMessageId, loadedMessagesCount);
-          break;
-        }
-        // The user wants to update his status
-        case NetworkMessageType.USER.STATUSUPDATE: {
-          // Socket message format:
-          // { type, status }
-          if (dataObject.hasOwnProperty('status') && typeof dataObject.status === 'string') {
-            this.pushUserStatus(dataObject.status, userId);
-          }
-          break;
-        }
-        default: {
-          // Log this event
-          Log.write(Log.WARNING, 'Unknown message type');
-        }
-      }
+      dataObject = JSON.parse(data);
+      messageType = dataObject.hasOwnProperty('type') ? dataObject.type : -1;
     } catch (e) {
+      // Log the parsing error
       Log.write(Log.WARNING, 'Could not parse JSON of network message send by', userId);
+    }
+    // Proccess the message correctly
+    switch (messageType) {
+      // The user wants to send a new message
+      case NetworkMessageType.USER.MESSAGE: {
+        // Socket message format:
+        // { type, time, hash, messageText, messageImage }
+        if (
+          dataObject.hasOwnProperty('time') &&
+          dataObject.hasOwnProperty('hash') &&
+          dataObject.hasOwnProperty('messageText') &&
+          dataObject.hasOwnProperty('messageImage')
+        ) {
+          this.addMessage(dataObject.messageText, dataObject.messageImage, userId, dataObject.hash, dataObject.time);
+        }
+        break;
+      }
+      // The user wants to load existing messages
+      case NetworkMessageType.USER.LOADMESSAGES: {
+        // Socket message format:
+        // { type, count, loadedMessagesCount }
+        const count = dataObject.hasOwnProperty('count') && typeof dataObject.count === 'number' ? Math.floor(dataObject.count) : 0;
+        const loadedMessagesCount = dataObject.hasOwnProperty('loadedMessagesCount') && typeof dataObject.loadedMessagesCount === 'number' ? Math.floor(dataObject.loadedMessagesCount) : 0;
+        this.sendMessages(socket, count, loadedMessagesCount);
+        break;
+      }
+      // The user wants to update his status
+      case NetworkMessageType.USER.STATUSUPDATE: {
+        // Socket message format:
+        // { type, status }
+        if (dataObject.hasOwnProperty('status') && typeof dataObject.status === 'string') {
+          this.pushUserStatus(dataObject.status, userId);
+        }
+        break;
+      }
+      default: {
+        // Log this event
+        Log.write(Log.WARNING, 'Unknown message type');
+      }
     }
     // Log about this
     Log.write(Log.DEBUG, 'Proccessing message from userId', userId, data);
@@ -190,36 +211,30 @@ class Chat {
   *
   * @param {socket} socket
   * @param {number} count
-  * @param {string} lastMessageId
   * @param {number} loadedMessagesCount
   */
-  sendMessages(socket, count, lastMessageId, loadedMessagesCount) {
-    // Get the last messages from the data
-    ChatData.messagesGetOld(this.id, count, lastMessageId == '' ? false : lastMessageId, loadedMessagesCount, messages => {
-      if (messages) {
-        // Keep a clean event loop
-        setImmediate(() => {
-          // Send the messages to the socket
-          const socketResponse = {
-            type: NetworkMessageType.DATA.MESSAGELIST,
-            messages: messages,
-            totalMessageCount: this.messageCount,
-          };
-          try {
-            socket.send(JSON.stringify(socketResponse));
-          } catch (e) {
-            // Tell the log about the error
-            Log.write(Log.ERROR, 'Could not send messages to user');
-          }
-        });
-        Log.write(Log.DEBUG, `Sending ${count} messages to a connected user`);
+  sendMessages(socket, count, loadedMessagesCount) {
+    // Try to load the messages from the db
+    ChatData.loadChatMessages(this.id, count, loadedMessagesCount, messages => {
+      // Send the messages to the socket
+      const socketResponse = {
+        type: NetworkMessageType.DATA.MESSAGELIST,
+        messages,
+        totalMessageCount: this.messageCount,
+      };
+      try {
+        socket.send(JSON.stringify(socketResponse));
+      } catch (e) {
+        // Tell the log about the error
+        Log.write(Log.ERROR, 'Could not send messages to user');
       }
+      Log.write(Log.DEBUG, `Sending ${messages.length} messages to a connected user`);
     });
   }
 
   /**
   * pushNewMessage() sends a
-  * message of a given id to
+  * given message to
   * all connected users.
   *
   * @param {string} message
@@ -389,25 +404,31 @@ class Chat {
       User.testHash(this.users[userIndex].token, tokenHash, time)
     ) {
       // The Message seems valid, create it
-      const newMessage = {
+      let newMessage = {
         id: RandString.idMessage,
-        text: messageText.length > 0 ? messageText.substr(0, 2000) : false, // Current message length limit, be sure to warn on client side!
-        attachment: messageImage.length > 0 ? 1 : 0, // The attachment type, 0 = none, 1 = image
         userId: userId,
         time: time,
       };
-      // Store it
-      ChatData.messagesAddMessage(this.id, newMessage, messageImage.length > 0 ? messageImage : false, success => {
+      // Add all optional message data
+      if (messageText.length > 0) newMessage.text = messageText.substr(0, 2000); // Current message length limit, be sure to warn on client side!
+      if (messageImage.length > 0) newMessage.image = true;
+      // Store the new message and send it to connected users
+      ChatData.addChatMessage(this.id, newMessage, messageImage.length > 0 ? messageImage : null, success => {
+        // Currently, this fails silently (FIXME)
         if (success) {
           // Increment the message count
           this.messageCount ++;
-          // Catch everone up on this exiting news
+          // Catch everone up on the exiting news
           this.pushNewMessage(newMessage);
+        } else {
+          // Log this
+          Log.write(Log.WARNING, 'Message could not be stored for chat with id', this.id);
         }
       });
-      // Return true
+      // Success feedback (store attempt made)
       return true;
     }
+    // Error, message was malformed
     return false;
   }
 
@@ -428,21 +449,27 @@ class Chat {
     if (userIndex === -1) {
       // Test the user id & name
       if (User.validateId(userId) && User.validateName(userName)) {
-        // Create the user Data
+        // Create the user Data (this data model should not change!)
         const newUser = {
           id: userId,
           name: userName.substr(0, 50),
           token: User.generateToken(),
           active: true,
         };
-        // Store change to memory
+        // Store change to db
         setImmediate(() => {
-          ChatData.chatAddUser(this.id, newUser, success => {
+          ChatData.addChatUser(this.id, newUser, success => {
             if (success) {
               // Log about this
               Log.write(Log.DEBUG, 'New user stored with id', userId);
             } else {
-              // TODO: Remove user from local runtime here!
+              // Disconnect the user
+              this.disconnectUser(userId);
+              // Remove the user and update the user list
+              this.users.splice(this.indexOfUser(userId), 1);
+              // Update everyones user list
+              this.pushUserList();
+              // Log this
               Log.write(Log.ERROR, 'Could not store user with id', userId);
             }
           });
@@ -492,15 +519,8 @@ class Chat {
       this.users[userIndex].active = !!isActive;
       // Store change to memory
       setImmediate(() => {
-        ChatData.chatUpdateUser(this.id, userId, this.users[userIndex], success => {
-          if (success) {
-            // Log about this
-            Log.write(Log.DEBUG, 'User updated with id', userId);
-          } else {
-            // TODO: Do something about this error here!
-            Log.write(Log.ERROR, 'Could not update user with id', userId);
-          }
-        });
+        // This db write will fail silently
+        ChatData.updateChatUser(this.id, userId, this.users[userIndex]);
       });
       // Push a new user list to all connected clients
       this.pushUserList();
@@ -580,25 +600,28 @@ class Chat {
   scheduleDestructor(chatAge = 180000) {
     // Stop the existing timeout (if applicable)
     if (this.destructor.timeout !== null) clearTimeout(this.destructor.timeout);
-    // Set a new distructor timeout
-    this.destructor.timeout = setTimeout(() => {
-      try {
-        if (this.connections.length === 0) {
-          // Log about this
-          Log.write(Log.DEBUG, 'Destructing chat with id', this.id);
-          // Call the destructor callback (the destructor is passed the chats id)
-          setImmediate(() => {
-            this.destructor.callback(this.id);
-          });
-        } else {
-          Log.write(Log.DEBUG, 'Will not destruct chat');
+    // Test if destructor is given
+    if (typeof this.destructor.callback === 'function') {
+      // Set a new distructor timeout
+      this.destructor.timeout = setTimeout(() => {
+        try {
+          if (this.connections.length === 0) {
+            // Log about this
+            Log.write(Log.DEBUG, 'Destructing chat with id', this.id);
+            // Call the destructor callback (the destructor is passed the chats id)
+            setImmediate(() => {
+              this.destructor.callback(this.id);
+            });
+          } else {
+            Log.write(Log.DEBUG, 'Will not destruct chat');
+          }
+        } catch (e) {
+          // This is to prevent chat destruction errors, if the chat was already destructed
         }
-      } catch (e) {
-        // This is to prevent chat destruction errors, if the chat was already destructed
-      }
-    }, chatAge); // 24 h / one day, if standard
-    // Log about this
-    Log.write(Log.DEBUG, 'Chat destructor scheduled for chat with id', this.id);
+      }, chatAge); // 24 h / one day, if standard
+      // Log about this
+      Log.write(Log.DEBUG, 'Chat destructor scheduled for chat with id', this.id);
+    }
   }
 
   /**
@@ -623,10 +646,18 @@ class Chat {
       // Create name and id
       const chatId = RandString.idChat;
       const chatName = typeof name === 'string' && name.length > 0 ? name.substr(0, 50) : 'Chat';
-      // Create the chat record
-      ChatData.chatCreate(chatId, chatName, success => {
+      // Create the new chats data
+      const chat = {
+        id: chatId,
+        name: chatName,
+        messageCount: 0,
+        users: [],
+        messages: [],
+      };
+      // Store the chat
+      ChatData.addChat(chatId, chat, success => {
         if (success) {
-          // Chat creation went smoothly
+          // Chat creation did work
           callback(chatId);
           Log.write(Log.INFO, 'New chat created');
         } else {
