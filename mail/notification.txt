@@ -1,0 +1,11 @@
+"{message}"
+
+Send by {username}
+
+Someone mentioned you in a Freech chat. Join now, to
+participate in the conversation.
+
+JOIN CHAT ( {url-chat} )
+
+Unsubscribe ( {url-unsubscribe} ) to stop receiving these
+notifications.

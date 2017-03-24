@@ -27,6 +27,7 @@ var freech = {
     loadingOldMessages: false,
     socket: null,
     connected: false,
+    socketCallbacks: {}, /* if a socket request expects a socket response, this will be used */
   },
 
   // Function that loads the current data (for useres & chats)
@@ -416,7 +417,6 @@ var freech = {
         return JSON.stringify({
           type: 2,
           count: 5,
-          lastMessageId: freech.tempData.messages.length > 0 ? freech.tempData.messages[0].id : '',
           loadedMessagesCount: freech.tempData.messages.length,
         });
       } catch (e) {}
@@ -429,6 +429,20 @@ var freech = {
         return JSON.stringify({
           type: 3,
           status: ''.concat(status),
+        });
+      } catch (e) {}
+    }
+    return false;
+  },
+  socketMessageEmailNotification: function(messageId) {
+    if (freech.chatExists() && freech.chatUserExists()) {
+      try {
+        var time = Date.now();
+        return JSON.stringify({
+          type: 4,
+          messageId: ''.concat(messageId),
+          hash: freech.socketMessageHash(freech.data.users[freech.tempData.chatId].token, time),
+          time: time,
         });
       } catch (e) {}
     }
@@ -517,6 +531,16 @@ var freech = {
                 });
                 break;
               }
+              // The requested email notification has been send
+              case 21: {
+                // Test if the callback exists
+                if (freech.tempData.socketCallbacks.hasOwnProperty(21) && typeof freech.tempData.socketCallbacks[21] === 'function') {
+                  // Send data to the callback and clear the callback
+                  freech.tempData.socketCallbacks[21](+dataObj.notificationCount);
+                  freech.tempData.socketCallbacks[21] = null;
+                }
+                break;
+              }
               // Debug stuff
               default: {
                 console.warn('Unknown message type:', data);
@@ -574,6 +598,16 @@ var freech = {
       freech.tempData.socket.send(socketMessage);
     }
   },
+  socketEmailNotification: function(messageId, callback) {
+    // Create the message string
+    var socketMessage = freech.socketMessageEmailNotification(messageId);
+    if (socketMessage && freech.tempData.connected) {
+      // Register the callback
+      freech.tempData.socketCallbacks[21] = callback;
+      // Send the message
+      freech.tempData.socket.send(socketMessage);
+    }
+  },
 
   attachmentGetImages: function(callback) {
     // Go through all messages and request the missing images
@@ -623,6 +657,7 @@ var ui = {
       creatingChat: false,
       creatingUser: false,
       sendingNewMessage: false,
+      sendingEmailNotification: false,
     },
     content: {
       shareUrl: '',
@@ -665,6 +700,11 @@ var ui = {
     }, 20);
   },
 
+  // Attempts to reconnect the chat, if the connection is lost
+  chatReconnect: function() {
+    // TODO: Implement this
+  },
+
   // Updates the image upload data
   updateImageUpload: function(inputElement) {
     if (inputElement && inputElement.files && inputElement.files.length >= 1) {
@@ -702,8 +742,8 @@ var ui = {
     ) {
       // Get the last message
       var latestMessage = freech.tempData.messages[freech.tempData.messages.length - 1];
-      // Send the notification (if not send by this user)
-      if (latestMessage.userId !== freech.chatUserId()) {
+      // Send the notification (if not send by this user AND is no system message)
+      if (latestMessage.userId !== freech.chatUserId() && !latestMessage.hasOwnProperty('systemMessage')) {
         var notification = new Notification(
           ''.concat(freech.getNameOfUser(latestMessage.userId).concat(' has sent a message')),
           {
@@ -872,6 +912,19 @@ var ui = {
     ui.data.modals.sidebarMore = !ui.data.modals.sidebarMore;
   },
 
+  // Event that requests the server to send an email notification from a given message
+  eventButtonRequestEmailNotification: function(messageId) {
+    // Test if a notification is currently being requested
+    if (ui.data.loading.sendingEmailNotification === false) {
+      // Request a notification and indicate that teh request is qued
+      ui.data.loading.sendingEmailNotification = true;
+      freech.socketEmailNotification(''.concat(messageId), function() {
+        // The messages where send, or the request did return a response
+        ui.data.loading.sendingEmailNotification = false;
+      });
+    }
+  },
+
   // Event that is executed on scroll in the chat messages-view
   eventScrollChat: function() {
     var chatWindow = document.getElementById('chat-messages-scroll');
@@ -989,9 +1042,9 @@ setInterval(function() {
 
 // Timestamp filter, returns a formated time like 9:07
 Vue.filter('timestamp', function(value) {
-	if (typeof value === 'number') {
+  if (typeof value === 'number' || /^[0-9]+$/i.test(value)) {
     var months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
-    var date = new Date(value);
+    var date = new Date(+value);
     var dateNow = new Date();
     var timeStamp = ''.concat(date.getHours()).concat(':');
     timeStamp = timeStamp.concat(date.getMinutes() > 9 ? date.getMinutes() : '0'.concat(date.getMinutes()));
@@ -1005,8 +1058,8 @@ Vue.filter('timestamp', function(value) {
     } else {
       return timeStamp;
     }
-	}
-	return value;
+  }
+  return value;
 });
 // Userclass filter, returns the correct conditional classes for an userId
 Vue.filter('userclass', function(value) {
@@ -1041,8 +1094,9 @@ Vue.filter('message', function(value) {
   var smallChars = 'fijlrtI1!';
   var valueArray = [];
   value.split(' ').forEach(function(word) {
-    // Test if word is a (valid) URL
+    // Test if the word is special
     if (/^(https?:\/\/)?([^\s\@\/\.]+\.)?[^\s\@\/\.]+\.[^\d\s\@\/\.]{2,}(\/[^\s]*)?$/i.test(word)) {
+      // The word is a valid url
       var url = ''.concat(word);
       // Work out if protocol is in url
       if (!/^https?:\/\//i.test(url)) url = 'http://'.concat(url);
@@ -1052,6 +1106,11 @@ Vue.filter('message', function(value) {
       valueArray.push('<a href="'.concat(url).concat('" target="_blank" rel="noopener noreferrer">'));
       valueArray.push(word);
       valueArray.push('</a>');
+    } else if (/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/i.test(word)) {
+      // The word is a valid e-mail address, make it bold
+      valueArray.push('<span class="email">');
+      valueArray.push(word);
+      valueArray.push('</span>');
     } else {
       valueArray.push(word);
     }
@@ -1105,7 +1164,9 @@ new Vue({
     buttonToggleChatList: ui.eventButtonToggleChatList,
     buttonToggleChatUserActive: ui.eventButtonToggleChatUserActive,
     buttonToggleSidebarMore: ui.eventButtonToggleSidebarMore,
+    buttonRequestEmailNotification: ui.eventButtonRequestEmailNotification,
     scrollChat: ui.eventScrollChat,
     settingsEnableNotifications: ui.eventSettingsEnableNotifications,
+    chatUserId: freech.chatUserId,
   },
 });

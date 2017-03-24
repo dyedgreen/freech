@@ -4,9 +4,21 @@
 // Imports
 const Log = require('./Log.js');
 const RandString = require('./RandString.js');
+const Mail = require('./Mail.js');
 const ChatData = require('./ChatData.js');
 const User = require('./User.js');
 const NetworkMessageType = require('./NetworkMessageType.js');
+
+// Constants
+const uiText = {
+  defaultChatName: 'Chat',
+  systemMessage: {
+    userNew: '{username} joined the chat',
+    userInactive: '{username} left the chat',
+    userActive: '{username} re-joined the chat',
+    notificationSent: 'Notification sent to: {maillist}',
+  },
+}
 
 
 /**
@@ -187,6 +199,22 @@ class Chat {
         // { type, status }
         if (dataObject.hasOwnProperty('status') && typeof dataObject.status === 'string') {
           this.pushUserStatus(dataObject.status, userId);
+        }
+        break;
+      }
+      // The user wants to send an email notification from a given message
+      case NetworkMessageType.USER.EMAILNOTIFICATION: {
+        // Socket message format:
+        // { type, time, hash, messageId }
+        if (
+          dataObject.hasOwnProperty('time') &&
+          dataObject.hasOwnProperty('hash') &&
+          dataObject.hasOwnProperty('messageId')
+        ) {
+          const time = +dataObject.time;
+          const hash = ''.concat(dataObject.hash);
+          const messageId = ''.concat(dataObject.messageId);
+          this.sendNotification(messageId, socket, userId, time, hash);
         }
         break;
       }
@@ -374,6 +402,101 @@ class Chat {
   }
 
   /**
+  * sendNotification() takes
+  * a message id, validates
+  * the user agains the
+  * requested message and
+  * sends email-notifications
+  * to all emails contained in
+  * the message.
+  *
+  * @param {string} messageId
+  * @param {socket} socket
+  * @param {string} userId
+  * @param {number} time
+  * @param {string} hash
+  */
+  sendNotification(messageId, socket, userId, time, hash) {
+    // Validate the user
+    const userIndex = this.indexOfUser(userId);
+    if (userIndex !== -1 && User.testHash(this.users[userIndex].token, hash, time)) {
+      // Find the message and the email-addresses it contains
+      ChatData.loadChatMessage(this.id, messageId, message => {
+        // Create the socket message
+        let socketMessage = {
+          type: NetworkMessageType.DATA.EMAILNOTIFICATIONSENT,
+          notificationCount: 0,
+        };
+        // If the message exists and has emails, send emails and return a positive feedback
+        if (message && message.userId === userId && message.hasOwnProperty('emails')) {
+          // Send the emails
+          socketMessage.notificationCount = +message.emails.length;
+          let emailNotification = new Mail('notification');
+          message.emails.forEach(email => {
+            // Send the email
+            emailNotification.send(email, {
+              message: ''.concat(message.text),
+              username: this.users[userIndex].name,
+              'url-chat-id': this.id,
+              'url-unsubscribe-address': email,
+            });
+          });
+          // Add a notice to the chat
+          this.addSystemMessage(uiText.systemMessage.notificationSent.replace('{maillist}', message.emails.join(', ')), userId);
+        }
+        // Send response with the number of send notifications to the socket
+        try {
+          const socketMessageString = JSON.stringify(socketMessage);
+          setImmediate(() => {
+            socket.send(socketMessageString);
+          });
+        } catch (e) {
+          // Log the error
+          Log.write(Log.ERROR, 'Could not send email notification feedback to user');
+        }
+      });
+    }
+    // TODO: Maybe do something usefull here
+  }
+
+  /**
+  * addSystemMessage() will
+  * add a custom system message
+  * to the chat. These messages
+  * can be used to indicate
+  * events on the side of the server.
+  *
+  * @param {string} messageText (the text of the system message, max 1000 chars)
+  * @param {string} userId (the id of the user that caused the event, can be empty)
+  */
+  addSystemMessage(text, userId) {
+    // Validate the inputs
+    if (
+      typeof text === 'string' &&
+      text.length > 0 &&
+      (this.indexOfUser(userId) !== -1 || userId === '')
+    ) {
+      // The Message seems valid, create it
+      const newMessage = {
+        id: RandString.idMessage,
+        userId: userId,
+        time: Date.now(),
+        systemMessage: ''.concat(text).substr(0, 1000),
+      };
+      // Store the new message and send it to connected users
+      ChatData.addChatMessage(this.id, newMessage, null, success => {
+        // Currently, this fails silently (FIXME)
+        if (success) {
+          // Increment the message count
+          this.messageCount ++;
+          // Catch everone up on the exiting news
+          this.pushNewMessage(newMessage);
+        }
+      });
+    }
+  }
+
+  /**
   * addMessage() adds a new
   * message to the chat. The user
   * needs to identify himself, using
@@ -386,13 +509,14 @@ class Chat {
   * the server silentely drops / corrects
   * them.
   *
-  * @param {string} messageText the text of the message, can not be longer than 1000 chars!
+  * @param {string} messageText the text of the message, can not be longer than 2000 chars!
+  * @param {string} messageImage the message image, max. 2M chars
   * @param {string} userId the id of the sending user
   * @param {string} tokenHash the hashed token
   * @param {number} time the time the message was created (and the token was hashed)
   * @return {bool}
   */
-  addMessage(messageText, messageImage, userId, tokenHash, time) {
+  addMessage(messageText, messageImage, userId, hash, time) {
     // Validate the inputs
     const userIndex = this.indexOfUser(userId);
     if (
@@ -401,7 +525,7 @@ class Chat {
       typeof messageImage === 'string' &&
       messageText.length + messageImage.length > 0 && // Either an image or a text or both
       messageImage.length <= 2000000 && // Max image size (images are downscaled on client side)
-      User.testHash(this.users[userIndex].token, tokenHash, time)
+      User.testHash(this.users[userIndex].token, hash, time)
     ) {
       // The Message seems valid, create it
       let newMessage = {
@@ -410,7 +534,16 @@ class Chat {
         time: time,
       };
       // Add all optional message data
-      if (messageText.length > 0) newMessage.text = messageText.substr(0, 2000); // Current message length limit, be sure to warn on client side!
+      if (messageText.length > 0) {
+        // Get the message (max length is 2000)
+        newMessage.text = messageText.substr(0, 2000);
+        // Test for emails contained in the message (RegEx: http://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address)
+        let emails = newMessage.text.match(/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/ig);
+        if (Array.isArray(emails) && emails.length > 0) {
+          // Add the emails to the message
+          newMessage.emails = emails;
+        }
+      }
       if (messageImage.length > 0) newMessage.image = true;
       // Store the new message and send it to connected users
       ChatData.addChatMessage(this.id, newMessage, messageImage.length > 0 ? messageImage : null, success => {
@@ -437,8 +570,9 @@ class Chat {
   * the chat and returns his
   * personal access token. Or
   * false in case of error, or
-  * true if the user already
-  * existed.
+  * false if the user already
+  * existed / the user limit
+  * has been reached.
   *
   * @param {string} userId
   * @param {string} userName
@@ -446,7 +580,7 @@ class Chat {
   */
   addUser(userId, userName) {
     const userIndex = this.indexOfUser(userId);
-    if (userIndex === -1) {
+    if (userIndex === -1 && this.users.length < 256) {
       // Test the user id & name
       if (User.validateId(userId) && User.validateName(userName)) {
         // Create the user Data (this data model should not change!)
@@ -460,6 +594,8 @@ class Chat {
         setImmediate(() => {
           ChatData.addChatUser(this.id, newUser, success => {
             if (success) {
+              // Add a system message
+              this.addSystemMessage(uiText.systemMessage.userNew.replace('{username}', newUser.name), newUser.id);
               // Log about this
               Log.write(Log.DEBUG, 'New user stored with id', userId);
             } else {
@@ -487,7 +623,7 @@ class Chat {
         return false;
       }
     } else {
-      // User already exists, can't be added
+      // User already exists or limit is reached, can't be added
       return false;
     }
   }
@@ -520,7 +656,13 @@ class Chat {
       // Store change to memory
       setImmediate(() => {
         // This db write will fail silently
-        ChatData.updateChatUser(this.id, userId, this.users[userIndex]);
+        ChatData.updateChatUser(this.id, userId, this.users[userIndex], success => {
+          // If the status is reflected in the db, write a system message
+          if (success) {
+            const text = this.users[userIndex].active ? uiText.systemMessage.userActive : uiText.systemMessage.userInactive;
+            this.addSystemMessage(text.replace('{username}', this.users[userIndex].name), userId);
+          }
+        });
       });
       // Push a new user list to all connected clients
       this.pushUserList();
@@ -645,7 +787,7 @@ class Chat {
     setImmediate(() => {
       // Create name and id
       const chatId = RandString.idChat;
-      const chatName = typeof name === 'string' && name.length > 0 ? name.substr(0, 50) : 'Chat';
+      const chatName = typeof name === 'string' && name.length > 0 ? name.substr(0, 50) : uiText.defaultChatName;
       // Create the new chats data
       const chat = {
         id: chatId,

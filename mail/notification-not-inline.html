@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <!-- Meta Stuff -->
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Freech Notification</title>
+    <!-- Styles -->
+    <style>
+      * {
+        padding:0;
+        margin:0;
+        font-family:'Roboto', sans-serif;
+      }
+      html,
+      body {
+        color:#011627;
+        background-color:#EEEFED;
+      }
+      
+      .message {
+        width:350px;
+        max-width:90%;
+        height:auto;
+        padding:15px;
+        display:block;
+        margin:30px auto 5px auto;
+        
+        font-size:20px;
+        font-weight:500;
+        line-height:22px;
+        text-align:left;
+        
+        background-color:#2EC4B6;
+        color:#fff;
+        border-radius:10px;
+      }
+      .user {
+        width:350px;
+        max-width:90%;
+        height:auto;
+        display:block;
+        margin:5px auto 50px auto;
+        
+        font-size:15px;
+        font-weight:700;
+        font-style:italic;
+        line-height:25px;
+        text-align:left;
+        
+        color:#2EC4B6;
+      }
+      
+      .text {
+        width:450px;
+        max-width:90%;
+        height:auto;
+        display:block;
+        margin:50px auto 25px auto;
+        
+        font-size:20px;
+        font-weight:500;
+        line-height:22px;
+        text-align:center;
+        
+        color:#011627;
+      }
+      
+      .button {
+        width:200px;
+        height:50px;
+        padding:0 25px;
+        display:block;
+        position:relative;
+        margin:25px auto 30px auto;
+        
+        font-size:20px;
+        font-weight:700;
+        line-height:50px;
+        text-decoration:none;
+        text-align:center;
+        text-transform:uppercase;
+        
+        color:#fff;
+        background-color:rgba(0,0,0,0.5);
+        border-radius:10px;
+        
+        cursor:pointer;
+      }
+      
+      .footer {
+        width:450px;
+        max-width:90%;
+        height:auto;
+        display:block;
+        margin:30px auto 25px auto;
+        
+        font-size:15px;
+        font-weight:500;
+        line-height:22px;
+        text-align:center;
+        
+        color:rgba(0,0,0,0.3);
+      }
+      .footer a {
+        font-weight:600;
+        text-decoration:underline;
+        
+        color:rgba(0,0,0,0.3);
+      }
+    </style>
+  </head>
+  
+  <body>
+    <!-- The Message Content -->
+    <p class="message">{message}</p>
+    <span class="user">{username}</span>
+    <!-- The Info Text -->
+    <p class="text">Someone mentioned you in a Freech chat. Join now, to participate in the conversation.</p>
+    <!-- The Call To Action -->
+    <a href="{url-chat}" class="button">JOIN CHAT</a>
+    <!-- The Footer -->
+    <p class="footer"><a href="{url-unsubscribe}">Unsubscribe</a> to stop receiving these notifications.</p>
+  </body>
+  
+</html>

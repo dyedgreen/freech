@@ -123,16 +123,63 @@ class ChatData {
   * @param {function} callback
   */
   static loadChatMessages(chatId, count, loadedMessagesCount, callback) {
+    // This is a wrapper for a certain query
+    ChatData.loadChatMessagesByQuery(
+      { id: ''.concat(chatId) },
+      { fields: { messages: { $slice: [ -(loadedMessagesCount + count), count ] }, id: 0, name: 0, messageCount: 0, users: 0 } },
+      callback
+    );
+  }
+
+  /**
+  * loadChatMessage() will
+  * retrive a single chat
+  * message.
+  * The callback recives the
+  * message or false.
+  *
+  * @param {string} chatId
+  * @param {string} messageId
+  * @param {function} callback
+  */
+  static loadChatMessage(chatId, messageId, callback) {
+    // This is a wrapper for a certain query
+    ChatData.loadChatMessagesByQuery(
+      { id: ''.concat(chatId) },
+      { fields: { messages: { $elemMatch: { id: ''.concat(messageId) } }, id: 0, name: 0, messageCount: 0, users: 0 } },
+      messages => {
+        // Map the return from an array to a single message
+        if (messages.length > 0) {
+          callback(messages[0]);
+        } else {
+          callback(false);
+        }
+      }
+    );
+  }
+
+  /**
+  * loadChatMessagesByQuery() will
+  * load messages according to
+  * a mongo-db query obj.
+  * This should not be called
+  * directely.
+  *
+  * This is designed in this way,
+  * to avoid parsing the messages
+  * in multiple different places.
+  */
+  static loadChatMessagesByQuery(query, fields, callback) {
     // Test if the db is connected
     if (db.collection('chats')) {
       db.collection('chats').findOne(
-        { id: ''.concat(chatId) },
+        query,
         // Filter the messages array (make sure to exclude everything but messages!)
-        { fields: { messages: { $slice: [ -(loadedMessagesCount + count), count ] }, id: 0, name: 0, messageCount: 0, users: 0 } },
+        fields,
         (err, doc) => {
           // Proccess db results
           let messages = [];
-          if (!err && typeof doc === 'object' && doc.hasOwnProperty('messages')) {
+          if (!err && typeof doc === 'object' && doc.hasOwnProperty('messages') && Array.isArray(doc.messages)) {
             // Create the array with the message content
             doc.messages.forEach(dbEntry => {
               if (typeof dbEntry === 'object') {
@@ -145,6 +192,8 @@ class ChatData {
                 // Add all the available optional message fields
                 if (dbEntry.hasOwnProperty('text')) message.text = ''.concat(dbEntry.text);
                 if (dbEntry.hasOwnProperty('image')) message.image = true;
+                if (dbEntry.hasOwnProperty('emails')) message.emails = [].concat(dbEntry.emails);
+                if (dbEntry.hasOwnProperty('systemMessage')) message.systemMessage = ''.concat(dbEntry.systemMessage);
                 // Add the message to the list
                 messages.push(message);
               }

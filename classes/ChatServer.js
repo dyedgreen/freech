@@ -7,7 +7,9 @@ const https = require('https');
 const fs = require('fs');
 
 const Log = require('./Log.js');
+const ApiResponse = require('./ApiResponse.js');
 const Url = require('./Url.js');
+const Mail = require('./Mail.js');
 const ChatManager = require('./ChatManager.js');
 
 /**
@@ -121,7 +123,21 @@ class ChatServer {
     switch (endpoint) {
       case 'api': {
         // The call goes to the api, determine the correct endpoint
-        this.chatManager.resolve(url, res);
+        if (url.path.length >= 2) {
+          // Determine the API endpoint
+          if (url.path[1] === 'chat') {
+            // Endpoint is chat
+            this.chatManager.resolve(url, res);
+          } else if (url.path[1] === 'mail') {
+            // Endpoint is mail
+            Mail.resolve(url, res);
+          } else {
+            // General error response
+            ApiResponse.sendData(res, null, true);
+            // Log this
+            Log.write(Log.WARNING, 'Invalid api endpoint requested');
+          }
+        }
         break;
       }
       default: {

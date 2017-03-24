@@ -472,6 +472,10 @@ html {
 	color:#011627;
 	border-radius:10px
 }
+.chat .messages .message > p .email {
+  font-weight:700;
+  font-style:italic;
+}
 .chat .messages .message > p a {
 	display:inline-block;
 
@@ -514,6 +518,86 @@ html {
 
 	background:rgba(0,0,0,0.2);
 	border-radius:10px;
+}
+.chat .messages .message > .system-message {
+  width:100%;
+  height:auto;
+  display:inline-block;
+  
+  text-align:center;
+}
+.chat .messages .message > .system-message p {
+  width:auto;
+  max-width:90%;
+  height:auto;
+  min-height:20px;
+  display:inline-block;
+  padding:10px 15px;
+  
+  font-size:18px;
+	font-weight:500;
+	line-height:20px;
+	text-align:center;
+  text-overflow:ellipsis;
+
+	background:rgba(0,0,0,0.5);
+	color:#fff;
+	border-radius:10px;
+    
+  overflow:hidden;
+}
+.chat .messages .message > .button {
+  width:350px;
+	max-width:90%;
+	height:50px;
+	padding:0 25px;
+	display:inline-block;
+	position:relative;
+	margin:0 auto 25px auto;
+
+	font-size:20px;
+	font-weight:700;
+	line-height:50px;
+	text-decoration:none;
+	text-align:center;
+	text-transform:uppercase;
+
+	color:rgba(0,0,0,0.5);
+	background:#EEEFED;
+	border-radius:10px;
+
+	transition:.1s;
+	cursor:pointer;
+}
+.chat .messages .message > .button:active,
+.chat .messages .message > .button:focus,
+.chat .messages .message > .button:hover {
+	color:#fff;
+	background:rgba(0,0,0,0.5);
+}
+.chat .messages .message > .button.loading {
+	pointer-events:none;
+}
+.chat .messages .message > .button.loading:before {
+	/* TODO: Make this nicer */
+	height:100%;
+	width:100%;
+	display:block;
+	position:absolute;
+	top:0; right:0; bottom:0; left:0;
+
+	font-size:20px;
+	font-weight:700;
+	line-height:50px;
+	text-decoration:none;
+	text-align:center;
+	text-transform:capitalize;
+
+	color:rgba(0,0,0,0.5);
+	background:#EEEFED;
+	border-radius:10px;
+
+	content:"Loading ...";
 }
 
 .chat .messages .message.notme {

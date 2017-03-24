@@ -66,7 +66,7 @@
 				<!-- A single message -->
 				<div v-for="message in freechTemp.messages" track-by="id" class="message {{ message.userId | userclass }}" transition="message">
 					<!-- Sender & Timestamp -->
-					<span>{{ message.userId | username }} - {{ message.time | timestamp }}</span>
+					<span v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
 					<!-- Message text -->
 					<p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
 					<!-- Spacing -->
@@ -74,6 +74,16 @@
 					<!-- Attached image -->
 					<img v-if="message.hasOwnProperty('image') && message.image !== true" v-bind:src="message.image">
 					<span v-if="message.hasOwnProperty('image') && message.image === true" class="image-loading">Loading ...</span>
+          
+					<!-- Spacing -->
+					<span v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" style="display:block"></span>
+          <!-- Message Buttons (request email notification) -->
+          <a href="javascript:void(0)" v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" v-on:click="buttonRequestEmailNotification(message.id)" v-bind:class="{ 'loading': uiData.loading.sendingEmailNotification }" class="button">Send Notification</a>
+          
+          <!-- System message -->
+          <span v-if="message.hasOwnProperty('systemMessage')" class="system-message">
+            <p>{{ message.systemMessage }}</p>
+          </span>
 				</div>
 
 				<!-- A sending message -->

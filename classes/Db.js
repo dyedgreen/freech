@@ -28,6 +28,7 @@ let sharedConn = {
 * set as 'default' in the db.json config file will
 * get a shared connection, that all the Db class
 * instances will use.
+* TODO: Fix shared conn bug!
 */
 class Db {
 

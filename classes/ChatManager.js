@@ -70,8 +70,8 @@ class ChatManager {
   * @param {http.ServerResponse} res the response to write to
   */
   resolve(url, res) {
-    // Test if the request targets the chats endpoint (/api/chats/something ...)
-    if (url.path.length > 2 && url.path[1] == 'chat') {
+    // Test if the request targets the chats endpoint (/api/chat/something ...)
+    if (url.path.length > 2) {
       switch (url.path[2]) {
         // Create a new chat
         case 'new': {
@@ -218,7 +218,7 @@ class ChatManager {
     // General error response
     ApiResponse.sendData(res, null, true);
     // Log this shit
-    Log.write(Log.WARNING, 'Trying to resolve api request failed');
+    Log.write(Log.WARNING, 'Trying to resolve api request failed (chat)');
   }
 
   /**

@@ -20,6 +20,7 @@ class NetworkMessageType {
       MESSAGE: 1,
       LOADMESSAGES: 2,
       STATUSUPDATE: 3,
+      EMAILNOTIFICATION: 4,
     };
   }
 
@@ -34,10 +35,11 @@ class NetworkMessageType {
     };
   }
 
-  // Message types pulled from server
+  // Message types pulled from server (data, that is send as a response to a user message)
   static get DATA() {
     return {
       MESSAGELIST: 20,
+      EMAILNOTIFICATIONSENT: 21,
     };
   }
 
