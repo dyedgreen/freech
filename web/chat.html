@@ -206,7 +206,7 @@
 				<span v-for="(chatId, chatEntry) in freechData.users" class="chat-list {{ chatEntry.id | userclass }}">
 					<!-- Display the chat and user name -->
 					<h1>{{ chatEntry.chatName }}</h1>
-					<h2>{{ chatEntry.name }} <span v-if="!chatEntry.secure" class="secure">(not secure)</span></h2>
+					<h2>{{ chatEntry.name }} <!--span v-if="!chatEntry.secure" class="secure">(not secure)</span--></h2>
 					<!-- Deleted notice -->
 					<span v-if="!chatEntry.active" class="notice">Deleted</span>
 					<!-- Display the actions -->
