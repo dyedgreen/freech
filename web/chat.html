@@ -1,252 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 
-	<!--
+  <!--
    _____                   _
   |  ___| __ ___  ___  ___| |__
   | |_ | '__/ _ \/ _ \/ __| '_ \
   |  _|| | |  __/  __/ (__| | | |
   |_|  |_|  \___|\___|\___|_| |_|
 
-	-->
+  -->
 
-	<head>
-		<!-- Meta Stuff -->
-		<meta charset="utf-8">
-		<meta name="viewport" content="initial-scale=0.8, maximum-scale=0.8">
-		<!-- Title -->
-		<title>Freech - Chat</title>
-		<script>
-			// To avoid non-rendered template string in shared URLs
-			document.getElementsByTagName('title')[0].innerHTML = 'Freech - {{ freechTemp.chatName }}';
-		</script>
-		<!-- Fonts & Css -->
-		<link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
-		<link href="./css/chat.css" rel="stylesheet" type="text/css">
-	</head>
+  <head>
+    <!-- Meta Stuff -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=0.8, maximum-scale=0.8">
+    <!-- Title -->
+    <title>Freech - Chat</title>
+    <script>
+      // To avoid non-rendered template string in shared URLs
+      document.getElementsByTagName('title')[0].innerHTML = 'Freech - {{ freechTemp.chatName }}';
+    </script>
+    <!-- Fonts & Css -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
+    <link href="./css/chat.css" rel="stylesheet" type="text/css">
+  </head>
 
-	<!-- The App -->
-	<body>
-		<!-- The Sidebar (displaying the logged-in users) -->
-		<div class="sidebar">
-			<!-- The Header -->
-			<h1>{{ freechTemp.chatName }}</h1>
-			<!-- The list with all people -->
-			<div class="scroll">
-				<div v-for="user in freechTemp.userList" class="person {{ user.id | userclass }}">
-					<span>{{ user.name }}</span>
-				</div>
-			</div>
-			<!-- Button Sheet -->
-			<div class="more" v-show="uiData.modals.sidebarMore">
-				<!-- The Share Button -->
-				<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Invite a friend</a>
-				<!-- The My Chats Button -->
-				<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Your Chats</a>
-				<!-- The Settings Button -->
-				<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Settings</a>
-			</div>
-			<!-- More Button -->
-			<a href="javascript:void(0)" v-on:click="buttonToggleSidebarMore" class="button">{{ uiData.modals.sidebarMore ? 'Less' : 'More' }}</a>
-		</div>
+  <!-- The App -->
+  <body>
+    <!-- The Sidebar (displaying the logged-in users) -->
+    <div class="sidebar">
+      <!-- The Header -->
+      <h1>{{ freechTemp.chatName }}</h1>
+      <!-- The list with all people -->
+      <div class="scroll">
+        <div v-for="user in freechTemp.userList" data-last-seen="Seen {{ user.lastSeen | timestamp }}" class="person {{ user.id | userclass }}">
+          <span>{{ user.name }}</span>
+        </div>
+      </div>
+      <!-- Button Sheet -->
+      <div class="more" v-show="uiData.modals.sidebarMore">
+        <!-- The Share Button -->
+        <a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Invite a friend</a>
+        <!-- The My Chats Button -->
+        <a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Your Chats</a>
+        <!-- The Settings Button -->
+        <a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Settings</a>
+      </div>
+      <!-- More Button -->
+      <a href="javascript:void(0)" v-on:click="buttonToggleSidebarMore" class="button">{{ uiData.modals.sidebarMore ? 'Less' : 'More' }}</a>
+    </div>
 
-		<!-- The Chat -->
-		<div class="chat">
-			<!-- Message Container -->
-			<div id="chat-messages-scroll" v-on:scroll="scrollChat" class="messages">
+    <!-- The Chat -->
+    <div class="chat">
+      <!-- Message Container -->
+      <div id="chat-messages-scroll" v-on:scroll="scrollChat" class="messages">
 
-				<!-- The loading indicator -->
-				<span class="notice" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount > freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
-				<!-- The no messages indicator -->
-				<span class="notice" v-if="freechTemp.totalMessageCount === -1 || freechTemp.totalMessageCount === 0">No messages</span>
+        <!-- The loading indicator -->
+        <span class="notice" v-show="freechTemp.loadingOldMessages" v-if="freechTemp.totalMessageCount > freechTemp.messages.length && freechTemp.totalMessageCount !== -1">Loading ...</span>
+        <!-- The no messages indicator -->
+        <span class="notice" v-if="freechTemp.totalMessageCount === -1 || freechTemp.totalMessageCount === 0">No messages</span>
 
-				<!-- The load old button -->
-				<a href="javascript:void(0)" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1" v-show="!freechTemp.loadingOldMessages"  class="button" v-on:click="buttonLoadOldMessages">Load Old Messages</a>
+        <!-- The load old button -->
+        <a href="javascript:void(0)" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1" v-show="!freechTemp.loadingOldMessages"  class="button" v-on:click="buttonLoadOldMessages">Load Old Messages</a>
 
-				<!-- A single message -->
-				<div v-for="message in freechTemp.messages" track-by="id" class="message {{ message.userId | userclass }}" transition="message">
-					<!-- Sender & Timestamp -->
-					<span v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
-					<!-- Message text -->
-					<p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
-					<!-- Spacing -->
-					<span v-if="message.hasOwnProperty('text') && message.hasOwnProperty('image')" style="display:block"></span>
-					<!-- Attached image -->
-					<img v-if="message.hasOwnProperty('image') && message.image !== true" v-bind:src="message.image">
-					<span v-if="message.hasOwnProperty('image') && message.image === true" class="image-loading">Loading ...</span>
-          
-					<!-- Spacing -->
-					<span v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" style="display:block"></span>
+        <!-- A single message -->
+        <div v-for="message in freechTemp.messages" track-by="id" class="message {{ message.userId | userclass }}" transition="message">
+          <!-- Sender & Timestamp -->
+          <span v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
+          <!-- Message text -->
+          <p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
+          <!-- Spacing -->
+          <span v-if="message.hasOwnProperty('text') && message.hasOwnProperty('image')" style="display:block"></span>
+          <!-- Attached image -->
+          <img v-if="message.hasOwnProperty('image') && message.image !== true" v-bind:src="message.image">
+          <span v-if="message.hasOwnProperty('image') && message.image === true" class="image-loading">Loading ...</span>
+
+          <!-- Spacing -->
+          <span v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" style="display:block"></span>
           <!-- Message Buttons (request email notification) -->
           <a href="javascript:void(0)" v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" v-on:click="buttonRequestEmailNotification(message.id)" v-bind:class="{ 'loading': uiData.loading.sendingEmailNotification }" class="button">Send Notification</a>
-          
+
           <!-- System message -->
           <span v-if="message.hasOwnProperty('systemMessage')" class="system-message">
             <p>{{ message.systemMessage }}</p>
           </span>
-				</div>
+        </div>
 
-				<!-- A sending message -->
-				<div v-for="message in freechTemp.sendingMessages" class="message sending">
-					<!-- Sending indication -->
-					<span>Sending ...</span>
-					<!-- Message text -->
-					<p v-if="message.text">{{{ message.text | message }}}</p>
-					<!-- Spacing -->
-					<span v-if="message.text && message.image" style="display:block"></span>
-					<!-- Attached image -->
-					<img v-if="message.image" v-bind:src="message.image">
-				</div>
+        <!-- A sending message -->
+        <div v-for="message in freechTemp.sendingMessages" class="message sending">
+          <!-- Sending indication -->
+          <span>Sending ...</span>
+          <!-- Message text -->
+          <p v-if="message.text">{{{ message.text | message }}}</p>
+          <!-- Spacing -->
+          <span v-if="message.text && message.image" style="display:block"></span>
+          <!-- Attached image -->
+          <img v-if="message.image" v-bind:src="message.image">
+        </div>
 
-			</div>
-			<!-- Send Input -->
-			<div class="compose" v-bind:class="{ 'sending': uiData.loading.sendingNewMessage }">
-				<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="What's on your mind?">
-				<label class="attach" for="image"></label>
-				<input id="image" name="image" type="file" accept="image/*" onchange="ui.updateImageUpload(this)">
-				<a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="send">Send</a>
-			</div>
-		</div>
+      </div>
+      <!-- Send Input -->
+      <div class="compose" v-bind:class="{ 'sending': uiData.loading.sendingNewMessage }">
+        <input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="What's on your mind?">
+        <label class="attach" for="image"></label>
+        <input id="image" name="image" type="file" accept="image/*" onchange="ui.updateImageUpload(this)">
+        <a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="send">Send</a>
+      </div>
+    </div>
 
-		<!-- Send Image Modal -->
-		<div class="modal-bg" v-if="input.newImage != ''" transition="modal">
-			<div class="modal">
-				<!-- Image preview -->
-				<img v-bind:src="input.newImage">
-				<!-- Add a comment -->
-				<input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="Add a comment.">
-				<!-- Send, Rotate, and Cancel -->
-				<span class="multi-button">
-					<a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="button" v-bind:class="{ 'loading': uiData.loading.sendingNewMessage }">Send Image</a>
-					<a href="javascript:void(0)" v-on:click="buttonRotateImage" class="button dark">Rotate</a>
-					<a href="javascript:void(0)" v-show="!uiData.loading.sendingNewMessage" v-on:click="buttonCancelImage" class="button yellow">Cancel</a>
-				</span>
-			</div>
-		</div>
+    <!-- Send Image Modal -->
+    <div class="modal-bg" v-if="input.newImage != ''" transition="modal">
+      <div class="modal">
+        <!-- Image preview -->
+        <img v-bind:src="input.newImage">
+        <!-- Add a comment -->
+        <input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="Add a comment.">
+        <!-- Send, Rotate, and Cancel -->
+        <span class="multi-button">
+          <a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="button" v-bind:class="{ 'loading': uiData.loading.sendingNewMessage }">Send Image</a>
+          <a href="javascript:void(0)" v-on:click="buttonRotateImage" class="button dark">Rotate</a>
+          <a href="javascript:void(0)" v-show="!uiData.loading.sendingNewMessage" v-on:click="buttonCancelImage" class="button yellow">Cancel</a>
+        </span>
+      </div>
+    </div>
 
-		<!-- Share This Chat Modal -->
-		<div class="modal-bg" v-if="uiData.modals.share" transition="modal">
-			<div class="modal">
-				<h1>Share this chat</h1>
-				<p>To share this chat, please invite your friends using this URL.</p>
-				<!-- URL (uses a trick, to achive a cropped url) -->
-				<a href="{{ uiData.content.shareUrl }}" class="url">
-					<img class="code" src="{{{ uiData.content.shareQr }}}" style="background-img:url({{{ uiData.content.shareQr }}})">
-					<span class="title">{{ freechTemp.chatName }}</span>
-					<span class="text">{{ uiData.content.shareUrl.substr(0, 50) + '...' }}</span>
-				</a>
-				<!-- Social buttons -->
-				<span class="multi-button">
-					<!-- Email -->
-					<a href="mailto:?&body={{ uiData.content.shareUrl }}" target="_blank" class="button dark">EMail</a>
-					<!-- Twitter -->
-					<a href="https://twitter.com/intent/tweet?url={{ uiData.content.shareUrl }}" target="_blank" class="button dark">Twitter</a>
-					<!-- Facebook -->
-					<a href="https://www.facebook.com/sharer/sharer.php?u={{ uiData.content.shareUrl }}" target="_blank" class="button dark">Facebook</a>
-				</span>
-				<!-- Close -->
-				<a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
-			</div>
-		</div>
+    <!-- Share This Chat Modal -->
+    <div class="modal-bg" v-if="uiData.modals.share" transition="modal">
+      <div class="modal">
+        <h1>Share this chat</h1>
+        <p>To share this chat, please invite your friends using this URL.</p>
+        <!-- URL (uses a trick, to achive a cropped url) -->
+        <a href="{{ uiData.content.shareUrl }}" class="url">
+          <img class="code" src="{{{ uiData.content.shareQr }}}" style="background-img:url({{{ uiData.content.shareQr }}})">
+          <span class="title">{{ freechTemp.chatName }}</span>
+          <span class="text">{{ uiData.content.shareUrl.substr(0, 50) + '...' }}</span>
+        </a>
+        <!-- Social buttons -->
+        <span class="multi-button">
+          <!-- Email -->
+          <a href="mailto:?&body={{ uiData.content.shareUrl }}" target="_blank" class="button dark">EMail</a>
+          <!-- Twitter -->
+          <a href="https://twitter.com/intent/tweet?url={{ uiData.content.shareUrl }}" target="_blank" class="button dark">Twitter</a>
+          <!-- Facebook -->
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ uiData.content.shareUrl }}" target="_blank" class="button dark">Facebook</a>
+        </span>
+        <!-- Close -->
+        <a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Done</a>
+      </div>
+    </div>
 
-		<!-- Settings Modal -->
-		<div class="modal-bg" v-if="uiData.modals.settings" transition="modal">
-			<div class="modal">
-				<!-- The Error Feedback -->
-				<span class="error" v-if="uiData.errors.settingsWarning !== ''">{{ uiData.errors.settingsWarning }}</span>
-				<!-- The Settings Page -->
-				<h1>Settings</h1>
-				<!-- Load on Scoll -->
-				<input id="scroll" type="checkbox" v-model="freechData.settings.loadMessagesOnScroll">
-				<label class="checkbox" for="scroll">Load Messages On Scroll</label>
-				<!-- Notifications -->
-				<span v-if="support.notifications">
-					<input id="notifications" type="checkbox" v-model="freechData.settings.notifications">
-					<label class="checkbox" for="notifications" v-on:click="settingsEnableNotifications">Enable Notifications</label>
-				</span>
-				<!-- Close -->
-				<a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Done</a>
-			</div>
-		</div>
+    <!-- Settings Modal -->
+    <div class="modal-bg" v-if="uiData.modals.settings" transition="modal">
+      <div class="modal">
+        <!-- The Error Feedback -->
+        <span class="error" v-if="uiData.errors.settingsWarning !== ''">{{ uiData.errors.settingsWarning }}</span>
+        <!-- The Settings Page -->
+        <h1>Settings</h1>
+        <!-- Load on Scoll -->
+        <input id="scroll" type="checkbox" v-model="freechData.settings.loadMessagesOnScroll">
+        <label class="checkbox" for="scroll">Load Messages On Scroll</label>
+        <!-- Notifications -->
+        <span v-if="support.notifications">
+          <input id="notifications" type="checkbox" v-model="freechData.settings.notifications">
+          <label class="checkbox" for="notifications" v-on:click="settingsEnableNotifications">Enable Notifications</label>
+        </span>
+        <!-- Close -->
+        <a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Done</a>
+      </div>
+    </div>
 
-		<!-- New Chat Modal -->
-		<div class="modal-bg" v-if="uiData.modals.newChat" transition="modal">
-			<div class="modal">
-				<span class="error" v-if="uiData.errors.createNewChat">Failed to create a chat.</span>
-				<h1>New chat</h1>
-				<p>Do you want to create a new chat? You can give your chat an optional name.</p>
-				<input type="text" v-model="input.newChatName" v-on:keyup.enter="buttonNewChat" placeholder="What's this chat about?">
-				<!-- Create Chat and View Chat List -->
-				<span class="multi-button">
-					<a href="javascript:void(0)" v-on:click="buttonNewChat" v-bind:class="{ 'loading': uiData.loading.creatingChat }" class="button">Create Chat</a>
-					<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button dark">Your Chats</a>
-				</span>
-			</div>
-		</div>
+    <!-- New Chat Modal -->
+    <div class="modal-bg" v-if="uiData.modals.newChat" transition="modal">
+      <div class="modal">
+        <span class="error" v-if="uiData.errors.createNewChat">Failed to create a chat.</span>
+        <h1>New chat</h1>
+        <p>Do you want to create a new chat? You can give your chat an optional name.</p>
+        <input type="text" v-model="input.newChatName" v-on:keyup.enter="buttonNewChat" placeholder="What's this chat about?">
+        <!-- Create Chat and View Chat List -->
+        <span class="multi-button">
+          <a href="javascript:void(0)" v-on:click="buttonNewChat" v-bind:class="{ 'loading': uiData.loading.creatingChat }" class="button">Create Chat</a>
+          <a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button dark">Your Chats</a>
+        </span>
+      </div>
+    </div>
 
-		<!-- Enter Name Modal -->
-		<div class="modal-bg" v-if="uiData.modals.newUser" transition="modal">
-			<div class="modal">
-				<span class="error" v-if="uiData.errors.createNewUser">Failed to join the chat. Have you tried <a href="/chat">creating a new one</a>?</span>
-				<span class="error" v-if="uiData.errors.createNewUserInput">You need to enter a name.</span>
-				<h1>Your name</h1>
-				<p>Please enter your name.</p>
-				<input type="text" v-model="input.newUserName" v-on:keyup.enter="buttonCreateUser" placeholder="What's your name?">
-				<a href="javascript:void(0)" v-on:click="buttonCreateUser" v-bind:class="{ 'loading': uiData.loading.creatingUser }" class="button">Join Chat</a>
-			</div>
-		</div>
+    <!-- Enter Name Modal -->
+    <div class="modal-bg" v-if="uiData.modals.newUser" transition="modal">
+      <div class="modal">
+        <span class="error" v-if="uiData.errors.createNewUser">Failed to join the chat. Have you tried <a href="/chat">creating a new one</a>?</span>
+        <span class="error" v-if="uiData.errors.createNewUserInput">You need to enter a name.</span>
+        <h1>Your name</h1>
+        <p>Please enter your name.</p>
+        <input type="text" v-model="input.newUserName" v-on:keyup.enter="buttonCreateUser" placeholder="What's your name?">
+        <a href="javascript:void(0)" v-on:click="buttonCreateUser" v-bind:class="{ 'loading': uiData.loading.creatingUser }" class="button">Join Chat</a>
+      </div>
+    </div>
 
-		<!-- Your Chats Modal -->
-		<div class="modal-bg" v-if="uiData.modals.chatList" transition="modal">
-			<div class="modal large">
-				<h1>Your Chats</h1>
-				<!-- The no chats indicator -->
-				<p v-if="freechData.users.countOwnProperties() === 0">You don't have any chats. Try creating one and invite your friends.</p>
-				<!-- The Chat List -->
-				<span v-for="(chatId, chatEntry) in freechData.users" class="chat-list {{ chatEntry.id | userclass }}">
-					<!-- Display the chat and user name -->
-					<h1>{{ chatEntry.chatName }}</h1>
-					<h2>{{ chatEntry.name }} <!--span v-if="!chatEntry.secure" class="secure">(not secure)</span--></h2>
-					<!-- Deleted notice -->
-					<span v-if="!chatEntry.active" class="notice">Deleted</span>
-					<!-- Display the actions -->
-					<span class="actions">
-						<a v-if="chatEntry.active && chatId !== freechTemp.chatId" href="{{ chatId | shareurl }}" class="action">Join</a>
-						<a v-if="chatEntry.active && chatId === freechTemp.chatId" href="javascript:void(0)" v-on:click="buttonToggleChatList" class="action">Join</a>
-						<a v-if="chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Delete</a>
-						<a v-if="!chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Recover</a>
-					</span>
-				</span>
-				<!-- Close and New Chat -->
-				<span class="multi-button">
-					<a href="/chat" class="button yellow">New Chat</a>
-					<a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Done</a>
-				</span>
-			</div>
-		</div>
+    <!-- Your Chats Modal -->
+    <div class="modal-bg" v-if="uiData.modals.chatList" transition="modal">
+      <div class="modal large">
+        <h1>Your Chats</h1>
+        <!-- The no chats indicator -->
+        <p v-if="freechData.users.countOwnProperties() === 0">You don't have any chats. Try creating one and invite your friends.</p>
+        <!-- The Chat List -->
+        <span v-for="(chatId, chatEntry) in freechData.users" class="chat-list {{ chatEntry.id | userclass }}">
+          <!-- Display the chat and user name -->
+          <h1>{{ chatEntry.chatName }}</h1>
+          <h2>{{ chatEntry.name }} <!--span v-if="!chatEntry.secure" class="secure">(not secure)</span--></h2>
+          <!-- Deleted notice -->
+          <span v-if="!chatEntry.active" class="notice">Deleted</span>
+          <!-- Display the actions -->
+          <span class="actions">
+            <a v-if="chatEntry.active && chatId !== freechTemp.chatId" href="{{ chatId | shareurl }}" class="action">Join</a>
+            <a v-if="chatEntry.active && chatId === freechTemp.chatId" href="javascript:void(0)" v-on:click="buttonToggleChatList" class="action">Join</a>
+            <a v-if="chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Delete</a>
+            <a v-if="!chatEntry.active" href="javascript:void(0)" v-on:click="buttonToggleChatUserActive(chatId)" class="action">Recover</a>
+          </span>
+        </span>
+        <!-- Close and New Chat -->
+        <span class="multi-button">
+          <a href="/chat" class="button yellow">New Chat</a>
+          <a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Done</a>
+        </span>
+      </div>
+    </div>
 
-		<!-- Connection Lost Modal -->
-		<div class="modal-bg" v-if="uiData.modals.disconnect" transition="modal">
-			<div class="modal error">
-				<!-- Lost connection -->
-				<h1>Connection lost</h1>
-				<p>Do you want to reconnect?</p>
-				<!-- Reconnect and New Chat -->
-				<span class="multi-button">
-					<a href="javascript:void(0)" v-on:click="buttonReconnect" class="button yellow">Reconnect</a>
-					<a href="/chat" class="button red">New Chat</a>
-				</span>
-			</div>
-		</div>
+    <!-- Connection Lost Modal -->
+    <div class="modal-bg" v-if="uiData.modals.disconnect" transition="modal">
+      <div class="modal error">
+        <!-- Lost connection -->
+        <h1>Connection lost</h1>
+        <p>Do you want to reconnect?</p>
+        <!-- Reconnect and New Chat -->
+        <span class="multi-button">
+          <a href="javascript:void(0)" v-on:click="buttonReconnect" class="button yellow">Reconnect</a>
+          <a href="/chat" class="button red">New Chat</a>
+        </span>
+      </div>
+    </div>
 
-		<!-- Full Loading TODO: Make this nicer -->
-		<div class="full-loading" v-if="uiData.loading.full">
-			Loading ...
-		</div>
+    <!-- Full Loading TODO: Make this nicer -->
+    <div class="full-loading" v-if="uiData.loading.full">
+      Loading ...
+    </div>
 
-		<!-- Scripts -->
-		<script src="./js/libs.js"></script>
-		<script src="./js/chat.js"></script>
-	</body>
+    <!-- Scripts -->
+    <script src="./js/libs.js"></script>
+    <script src="./js/chat.js"></script>
+  </body>
 
 </html>

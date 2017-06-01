@@ -132,6 +132,14 @@ class Chat {
       this.connections[connectionIndex].socket.close();
       // Remove the user from the connection list
       this.connections.splice(connectionIndex, 1);
+      // Update the last seen timestamp
+      const userIndex = this.indexOfUser(userId);
+      this.users[userIndex].lastSeen = Date.now();
+      // Store change to memory
+      setImmediate(() => {
+        // This db write will fail silently
+        ChatData.updateChatUser(this.id, userId, this.users[userIndex], null);
+      });
       // If the chat is now empty, destruct it automatically
       if (this.connections.length === 0) {
         // Will scheudle an immediate destruction
@@ -310,6 +318,7 @@ class Chat {
           name: user.name,
           active: user.active,
           connected: this.indexOfConnectedUser(user.id) !== -1,
+          lastSeen: user.lastSeen,
         });
       });
 
@@ -589,6 +598,7 @@ class Chat {
           name: userName.substr(0, 50),
           token: User.generateToken(),
           active: true,
+          lastSeen: Date.now(),
         };
         // Store change to db
         setImmediate(() => {
@@ -760,7 +770,7 @@ class Chat {
         } catch (e) {
           // This is to prevent chat destruction errors, if the chat was already destructed
         }
-      }, chatAge); // 24 h / one day, if standard
+      }, chatAge); // 3 min, if standard
       // Log about this
       Log.write(Log.DEBUG, 'Chat destructor scheduled for chat with id', this.id);
     }

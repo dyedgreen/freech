@@ -18,8 +18,6 @@ let db = new Db();
 * Notice that the data that is loaded, will be checked,
 * while the data that is written, is expected to be
 * valid.
-*
-* TODO: Some more logging is needed.
 */
 class ChatData {
 
@@ -54,6 +52,8 @@ class ChatData {
         if (typeof callback === 'function') callback(false);
       });
     }
+    // Log this event
+    Log.write(Log.DEBUG, 'Chat data performed chat lookup');
   }
 
   /**
@@ -78,11 +78,27 @@ class ChatData {
           if (!err && doc && typeof doc === 'object') {
             // Return a safe chat data obj
             let data = {};
+            let users = [];
             // Validate all the data
             data.id = ''.concat(chatId);
             data.name = doc.hasOwnProperty('name') ? ''.concat(doc.name) : 'Chat';
-            data.users = doc.hasOwnProperty('users') ? doc.users : []; // TODO: Validate this in the future (if there are changes)
+            users = doc.hasOwnProperty('users') ? doc.users : [];
+            data.users = [];
             data.messageCount = doc.hasOwnProperty('messageCount') ? doc.messageCount : 0;
+            // Validate each users data (missing data is either added, or reason to drop the user)
+            users.forEach(user => {
+              if (
+                typeof user.id === 'string' &&
+                typeof user.name === 'string' &&
+                typeof user.token === 'string'
+              ) {
+                // Add missing data
+                if (typeof user.active !== 'boolean') user.active = true;
+                if (typeof user.lastSeen !== 'number') user.lastSeen = Date.now();
+                // User is valid, add to list
+                data.users.push(user);
+              }
+            });
             // Return the chat data to the callback
             setImmediate(() => {
               if (typeof callback === 'function') callback(data);

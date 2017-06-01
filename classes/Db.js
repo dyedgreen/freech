@@ -104,8 +104,11 @@ class Db {
 
           Log.write(Log.INFO, 'Database connected');
         } else {
-          // Report the problem
-          Log.write(Log.ERROR, 'Failed to connect to the database');
+          // Try to revive database (100 attempts)
+          this.close();
+          this.revive(100);
+          // Report the problem to log
+          Log.write(Log.ERROR, 'Failed to connect to the database (you may need to restart the server)');
         }
 
         // Let the callback know

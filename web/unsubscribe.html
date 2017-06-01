@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 
-	<head>
-		<!-- Meta Stuff -->
-		<meta charset="utf-8">
-		<meta name="viewport" content="initial-scale=0.8, maximum-scale=0.8">
-		<!-- Title -->
-		<title>Freech - Unsubscribe</title>
-		<!-- Fonts & Css -->
-		<link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
-		<link href="./css/chat.css" rel="stylesheet" type="text/css">
-	</head>
+  <head>
+    <!-- Meta Stuff -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=0.8, maximum-scale=0.8">
+    <!-- Title -->
+    <title>Freech - Unsubscribe</title>
+    <!-- Fonts & Css -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
+    <link href="./css/chat.css" rel="stylesheet" type="text/css">
+  </head>
 
-	<!-- The Unsubscribe Interface -->
-	<body>
-		<!-- The Title And Email Address -->
+  <!-- The Unsubscribe Interface -->
+  <body>
+    <!-- The Title And Email Address -->
     <div class="modal-bg">
-			<div class="modal">
+      <div class="modal">
         <span class="error" v-if="error">Something went wrong, please try again.</span>
         <span class="warning" v-if="feedback">{{ feedback }}</span>
-				<h1>Unsubscribe from Freech Notifications</h1>
-				<p>Change the subscription for <b><i>{{ address }}</i></b>.</p>
-				<!-- Toggle button -->
-				<a href="javascript:void(0)" v-if="isUnsubscribed === false" v-on:click="toggle" class="button yellow">Unsubscribe</a>
-				<a href="javascript:void(0)" v-if="isUnsubscribed === true" v-on:click="toggle" class="button">Subscribe</a>
+        <h1>Unsubscribe from Freech Notifications</h1>
+        <p>Change the subscription for <b><i>{{ address }}</i></b>.</p>
+        <!-- Toggle button -->
+        <a href="javascript:void(0)" v-if="isUnsubscribed === false" v-on:click="toggle" class="button yellow">Unsubscribe</a>
+        <a href="javascript:void(0)" v-if="isUnsubscribed === true" v-on:click="toggle" class="button">Subscribe</a>
         <!-- Loading -->
         <a href="javascript:void(0)" v-if="isUnsubscribed === null"class="button loading"></a>
-			</div>
-		</div>
+      </div>
+    </div>
 
-		<!-- Scripts -->
-		<script src="./js/libs.js"></script>
-		<script src="./js/mail.js"></script>
-	</body>
+    <!-- Scripts -->
+    <script src="./js/libs.js"></script>
+    <script src="./js/mail.js"></script>
+  </body>
 
 </html>

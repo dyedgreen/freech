@@ -17,6 +17,12 @@ server.open();
 /**
 * How to use this setup:
 *
+* Important Information:
+* This depends on the engine.io library, which
+* appears to break in nodejs v. 8.0.0. However
+* the app is tested and works in the current LTS
+* v. 6.10.3
+*
 * 1) Set the log to the desired level:
 *   DEBUG (all logs)
 *   INFO
