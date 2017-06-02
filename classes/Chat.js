@@ -6,6 +6,7 @@ const Log = require('./Log.js');
 const RandString = require('./RandString.js');
 const Mail = require('./Mail.js');
 const ChatData = require('./ChatData.js');
+const ChatFiles = require('./ChatFiles.js');
 const User = require('./User.js');
 const NetworkMessageType = require('./NetworkMessageType.js');
 
@@ -40,6 +41,7 @@ class Chat {
     this.users = [];
     this.messageCount = 0;
     this.connections = [];
+    this.uploads = [];
     this.destructor = { timeout: null, callback: null };
     // Try to load the chat data from the DB
     ChatData.loadChat(this.id, data => {
@@ -181,14 +183,13 @@ class Chat {
       // The user wants to send a new message
       case NetworkMessageType.USER.MESSAGE: {
         // Socket message format:
-        // { type, time, hash, messageText, messageImage }
+        // { type, time, hash, messageText }
         if (
           dataObject.hasOwnProperty('time') &&
           dataObject.hasOwnProperty('hash') &&
-          dataObject.hasOwnProperty('messageText') &&
-          dataObject.hasOwnProperty('messageImage')
+          dataObject.hasOwnProperty('messageText')
         ) {
-          this.addMessage(dataObject.messageText, dataObject.messageImage, userId, dataObject.hash, dataObject.time);
+          this.addMessage(dataObject.messageText, userId, dataObject.hash, dataObject.time);
         }
         break;
       }
@@ -226,13 +227,52 @@ class Chat {
         }
         break;
       }
+      // The user indends to start a file upload
+      case NetworkMessageType.USER.FILE: {
+        // Socket message format:
+        // { type, time, hash, fileName, fileType, fileSize, messageText }
+        if (
+          dataObject.hasOwnProperty('time') &&
+          dataObject.hasOwnProperty('hash') &&
+          dataObject.hasOwnProperty('fileName') &&
+          dataObject.hasOwnProperty('fileType') &&
+          dataObject.hasOwnProperty('fileSize') &&
+          dataObject.hasOwnProperty('messageText')
+        ) {
+          // Create the file upload request
+          const fileName = ''.concat(dataObject.fileName);
+          const fileType = ''.concat(dataObject.fileType);
+          const fileSize = +dataObject.fileSize;
+          const messageText = ''.concat(dataObject.messageText);
+          const hash = ''.concat(dataObject.hash);
+          const time = +dataObject.time;
+          // Send request info to user
+          this.acceptFileUpload(socket, fileName, fileType, fileSize, messageText, userId, hash, time);
+        }
+        break;
+      }
+      // The user wants to submit a file-upload part
+      case NetworkMessageType.USER.FILEPART: {
+        // Socket message format:
+        // { type, messageId, partIndex, part }
+        if (
+          dataObject.hasOwnProperty('messageId') &&
+          dataObject.hasOwnProperty('partIndex') &&
+          dataObject.hasOwnProperty('part')
+        ) {
+          this.addFilePart(socket, ''.concat(dataObject.messageId), userId, +dataObject.partIndex, ''.concat(dataObject.part));
+        }
+        break;
+      }
       default: {
         // Log this event
         Log.write(Log.WARNING, 'Unknown message type');
       }
     }
-    // Log about this
-    Log.write(Log.DEBUG, 'Proccessing message from userId', userId, data);
+    // Log about this (excludes file upload parts)
+    if (messageType !== NetworkMessageType.USER.FILEPART) {
+      Log.write(Log.DEBUG, 'Proccessing message from userId', userId, data);
+    }
   }
 
   /**
@@ -525,15 +565,13 @@ class Chat {
   * @param {number} time the time the message was created (and the token was hashed)
   * @return {bool}
   */
-  addMessage(messageText, messageImage, userId, hash, time) {
+  addMessage(messageText, userId, hash, time) {
     // Validate the inputs
     const userIndex = this.indexOfUser(userId);
     if (
       userIndex !== -1 &&
       typeof messageText === 'string' &&
-      typeof messageImage === 'string' &&
-      messageText.length + messageImage.length > 0 && // Either an image or a text or both
-      messageImage.length <= 2000000 && // Max image size (images are downscaled on client side)
+      messageText.length > 0 && // Message text is present
       User.testHash(this.users[userIndex].token, hash, time)
     ) {
       // The Message seems valid, create it
@@ -542,20 +580,16 @@ class Chat {
         userId: userId,
         time: time,
       };
-      // Add all optional message data
-      if (messageText.length > 0) {
-        // Get the message (max length is 2000)
-        newMessage.text = messageText.substr(0, 2000);
-        // Test for emails contained in the message (RegEx: http://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address)
-        let emails = newMessage.text.match(/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/ig);
-        if (Array.isArray(emails) && emails.length > 0) {
-          // Add the emails to the message
-          newMessage.emails = emails;
-        }
+      // Get the message (max length is 2000)
+      newMessage.text = messageText.substr(0, 2000);
+      // Test for emails contained in the message (RegEx: http://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address)
+      let emails = newMessage.text.match(/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/ig);
+      if (Array.isArray(emails) && emails.length > 0) {
+        // Add the emails to the message
+        newMessage.emails = emails;
       }
-      if (messageImage.length > 0) newMessage.image = true;
       // Store the new message and send it to connected users
-      ChatData.addChatMessage(this.id, newMessage, messageImage.length > 0 ? messageImage : null, success => {
+      ChatData.addChatMessage(this.id, newMessage, success => {
         // Currently, this fails silently (FIXME)
         if (success) {
           // Increment the message count
@@ -572,6 +606,204 @@ class Chat {
     }
     // Error, message was malformed
     return false;
+  }
+
+  /**
+  * addFileUpload() will accept
+  * a file-upload request. The
+  * request needs to be validated
+  * for a given user.
+  * There is a limit for the possible
+  * file size. (The limit is set in
+  * ChatFiles.js).
+  *
+  * Upload operations are killed, if the
+  * chat destructs, before they where finished.
+  *
+  * @param {socket} socket
+  * @param {string} fileName
+  * @param {string} fileType
+  * @param {number} fileSize
+  * @param {string} messageText (max length is 500 chars; shorter than regular messages)
+  * @param {string} userId the id of the sending user
+  * @param {string} tokenHash the hashed token
+  * @param {number} time the time the message was created (and the token was hashed)
+  */
+  acceptFileUpload(socket, fileName, fileType, fileSize, messageText, userId, hash, time) {
+    // Prepare socket response
+    let socketMessage = {
+      type: NetworkMessageType.DATA.FILEACCEPT,
+      accepted: false,
+      messageId: '',
+    };
+    // Validate the user and data
+    const userIndex = this.indexOfUser(userId);
+    if (
+      userIndex !== -1 &&
+      typeof fileName === 'string' &&
+      typeof fileType === 'string' &&
+      typeof fileSize === 'number' &&
+      typeof messageText === 'string' &&
+      fileSize > 0 &&
+      fileSize <= ChatFiles.limits.partCount && // Max file size in n * 2048 UTF-8 encoded chars
+      fileName.length > 0 &&
+      fileType.length > 0 &&
+      User.testHash(this.users[userIndex].token, hash, time)
+    ) {
+      // Create the upload request
+      let upload = {
+        messageId: RandString.idMessage,
+        userId: userId,
+        fileName: fileName.substr(0, 100),
+        fileType: fileType.substr(0, 50),
+        fileSize,
+        messageText: messageText.substr(0, 500),
+        current: 0, /*current next part*/
+      };
+      // Store the upload request
+      this.uploads.push(upload);
+      // Set socket feedback data
+      socketMessage.accepted = true;
+      socketMessage.messageId = upload.messageId;
+    }
+    // Send response with the file upload/messageId or error (false)
+    try {
+      const socketMessageString = JSON.stringify(socketMessage);
+      setImmediate(() => {
+        socket.send(socketMessageString);
+      });
+    } catch (e) {
+      // Log the error
+      Log.write(Log.ERROR, 'Could not send file upload feedback to user');
+    }
+  }
+
+  /**
+  * addFilePart() will store the part for
+  * a file. It will also send a response
+  * to the sending socket.
+  *
+  *@param {socket} socket
+  * @param {string} messageId id of upload
+  * @param {string} userId user that created the part
+  * @param {number} partIndex identifies the part
+  * @param {string} part utf-8 encoded data
+  */
+  addFilePart(socket, messageId, userId, partIndex, part) {
+    // Prepare socket response
+    let respond = data => {
+      let socketMessage = {
+        type: NetworkMessageType.DATA.FILEACC,
+        nextIndex: data, // can be number / true or false on error on successs
+        messageId: ''.concat(messageId),
+      };
+      // Send response
+      try {
+        const socketMessageString = JSON.stringify(socketMessage);
+        setImmediate(() => {
+          socket.send(socketMessageString);
+        });
+      } catch (e) {
+        // Log the error
+        Log.write(Log.ERROR, 'Could not send file part feedback to user');
+      }
+    }
+    // Validate the inputs
+    const uploadIndex = this.indexOfUpload(messageId);
+    if (
+      uploadIndex !== -1 &&
+      this.uploads[uploadIndex].userId === userId &&
+      this.uploads[uploadIndex].current === partIndex &&
+      typeof part === 'string' &&
+      part.length > 0 &&
+      part.length <= ChatFiles.limits.partSize
+    ) {
+      // Write the part
+      ChatFiles.storeFilePart(this.id, messageId, part, success => {
+        if (success) {
+          // Determine if this was the last part
+          this.uploads[uploadIndex].current ++;
+          if (this.uploads[uploadIndex].current < this.uploads[uploadIndex].fileSize) {
+            // Request next part
+            respond(this.uploads[uploadIndex].current);
+          } else {
+            // This was the last part, finalize the file
+            ChatFiles.finalizeFile(this.id, messageId, () => {
+              // Get the upload
+              const upload = this.uploads[uploadIndex];
+              // Create the chat message
+              let newMessage = {
+                id: messageId,
+                userId: userId,
+                time: Date.now(),
+              };
+              // Add the text if present
+              if (upload.messageText.length > 0) newMessage.text = upload.messageText;
+              // Add the image/file data
+              switch (upload.fileType) {
+                // Images
+                case 'image/png':
+                case 'image/jpeg':
+                case 'image/gif': {
+                  // Images that are displayed get special treatment ;)
+                  newMessage.image = {
+                    name: upload.fileName,
+                    type: upload.fileType,
+                  };
+                  break;
+                }
+                // All other files
+                default: {
+                  newMessage.file = {
+                    name: upload.fileName,
+                    type: upload.fileType,
+                  };
+                  break;
+                }
+              }
+              // Store the new message and catch errors
+              ChatData.addChatMessage(this.id, newMessage, success => {
+                if (success) {
+                  // Increment the message count
+                  this.messageCount ++;
+                  // Destroy the upload
+                  this.uploads.splice(uploadIndex, 1);
+                  // Send response to socket
+                  respond(true);
+                  // Catch everone up on the exiting news
+                  this.pushNewMessage(newMessage);
+                } else {
+                  // Log this
+                  Log.write(Log.WARNING, 'Message with attachment could not be stored for chat with id', this.id);
+                }
+              });
+            });
+          }
+        } else {
+          // Write error, destroy the upload and remove any temp-files
+          this.uploads.splice(uploadIndex, 1);
+          ChatFiles.deleteFile(this.id, messageId, () => {
+            // Response to socket
+            respond(false);
+          });
+        }
+      });
+    } else {
+      // There was a problem with the inputs
+      setImmediate(() => {
+        // Destroy file upload (and any parts that might still exist)
+        if (uploadIndex !== -1 ) {
+          ChatFiles.deleteFile(this.id, this.uploads[uploadIndex].messageId, () => {
+            // Remove upload
+            this.uploads.splice(uploadIndex, 1);
+          });
+        }
+        // Hit response
+        respond(false);
+        // Log this
+        Log.write(Log.DEBUG, 'Malformed file part request');
+      });
+    }
   }
 
   /**
@@ -715,17 +947,18 @@ class Chat {
   }
 
   /**
-  * indexOfMessage() returns the index
-  * of a given message in the messages
-  * list.
+  * indexOfUpload() returns the index
+  * of a given upload in the upload list.
+  * The upload is identified by it's
+  * assigned message id.
   *
   * @param {string} messageId
   * @return {number}
   */
-  indexOfMessage(messageId) {
+  indexOfUpload(messageId) {
     // Try to find the requested message
-    for (let i = 0; i < this.messages.length; i ++) {
-      if (this.messages[i].id === messageId) return i;
+    for (let i = 0; i < this.uploads.length; i ++) {
+      if (this.uploads[i].messageId === messageId) return i;
     }
     return -1;
   }
@@ -760,6 +993,10 @@ class Chat {
           if (this.connections.length === 0) {
             // Log about this
             Log.write(Log.DEBUG, 'Destructing chat with id', this.id);
+            // Destroy all open file uploads
+            this.uploads.forEach(fileUpload => {
+              ChatFiles.deleteFile(this.id, fileUpload.messageId, null);
+            });
             // Call the destructor callback (the destructor is passed the chats id)
             setImmediate(() => {
               this.destructor.callback(this.id);

@@ -21,13 +21,15 @@ class NetworkMessageType {
       LOADMESSAGES: 2,
       STATUSUPDATE: 3,
       EMAILNOTIFICATION: 4,
+      FILE: 5,
+      FILEPART: 6,
     };
   }
 
   // Message types pushed by server
   static get UPDATE() {
     return {
-      HANDSHAKE: 0, /*NOTICE: CLIENT HANDSHAKE IS 0 AS WELL*/
+      HANDSHAKE: 0, /*NOTE: CLIENT HANDSHAKE IS 0 AS WELL*/
       NEWMESSAGE: 10,
       REMOVEDMESSAGE: 11,
       USERLIST: 12,
@@ -40,6 +42,8 @@ class NetworkMessageType {
     return {
       MESSAGELIST: 20,
       EMAILNOTIFICATIONSENT: 21,
+      FILEACCEPT: 22, /*can also contain error*/
+      FILEACC: 23, /*also sends errors*/
     };
   }
 

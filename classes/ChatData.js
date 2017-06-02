@@ -18,6 +18,8 @@ let db = new Db();
 * Notice that the data that is loaded, will be checked,
 * while the data that is written, is expected to be
 * valid.
+*
+* TODO: Add a 'delete chat' function
 */
 class ChatData {
 
@@ -195,25 +197,41 @@ class ChatData {
         (err, doc) => {
           // Proccess db results
           let messages = [];
-          if (!err && typeof doc === 'object' && doc.hasOwnProperty('messages') && Array.isArray(doc.messages)) {
-            // Create the array with the message content
-            doc.messages.forEach(dbEntry => {
-              if (typeof dbEntry === 'object') {
-                // Add all the available required message fields
-                let message = {
-                  id: ''.concat(dbEntry.id),
-                  userId: ''.concat(dbEntry.userId),
-                  time: ''.concat(dbEntry.time),
-                };
-                // Add all the available optional message fields
-                if (dbEntry.hasOwnProperty('text')) message.text = ''.concat(dbEntry.text);
-                if (dbEntry.hasOwnProperty('image')) message.image = true;
-                if (dbEntry.hasOwnProperty('emails')) message.emails = [].concat(dbEntry.emails);
-                if (dbEntry.hasOwnProperty('systemMessage')) message.systemMessage = ''.concat(dbEntry.systemMessage);
-                // Add the message to the list
-                messages.push(message);
-              }
-            });
+          // Make sure the server won't crash if the messages do not exist
+          try {
+            if (!err && typeof doc === 'object' && doc.hasOwnProperty('messages') && Array.isArray(doc.messages)) {
+              // Create the array with the message content
+              doc.messages.forEach(dbEntry => {
+                if (typeof dbEntry === 'object') {
+                  // Add all the available required message fields
+                  let message = {
+                    id: ''.concat(dbEntry.id),
+                    userId: ''.concat(dbEntry.userId),
+                    time: ''.concat(dbEntry.time),
+                  };
+                  // Add all the available optional message fields
+                  if (dbEntry.hasOwnProperty('text')) message.text = ''.concat(dbEntry.text);
+                  if (typeof dbEntry.image === 'object') {
+                    message.image = {
+                      name: ''.concat(dbEntry.image.hasOwnProperty('name') ? dbEntry.image.name : 'unknown'),
+                      type: ''.concat(dbEntry.image.hasOwnProperty('type') ? dbEntry.image.type : 'image/png'),
+                    };
+                  }
+                  if (typeof dbEntry.file === 'object') {
+                    message.file = {
+                      name: ''.concat(dbEntry.file.hasOwnProperty('name') ? dbEntry.file.name : 'unknown'),
+                      type: ''.concat(dbEntry.file.hasOwnProperty('type') ? dbEntry.file.type : 'text/plain'),
+                    };
+                  }
+                  if (dbEntry.hasOwnProperty('emails')) message.emails = [].concat(dbEntry.emails);
+                  if (dbEntry.hasOwnProperty('systemMessage')) message.systemMessage = ''.concat(dbEntry.systemMessage);
+                  // Add the message to the list
+                  messages.push(message);
+                }
+              });
+            }
+          } catch (e) {
+            // TODO: Maybe something usedfull might be added here
           }
           // Return messages to callback
           setImmediate(() => {
@@ -226,7 +244,7 @@ class ChatData {
         if (typeof callback === 'function') callback([]);
       });
       // Log about this
-      Log.write(Log.DEBUG, 'Chat messages did not load for chat with id', chatId);
+      Log.write(Log.DEBUG, 'Chat messages did not load for query');
     }
   }
 
@@ -277,16 +295,12 @@ class ChatData {
   * store a new message to
   * the database. This will
   * not validate the data!
-  * TODO: Attachments are currently
-  * strings, maybe make them streams
-  * later!
   *
   * @param {string} chatId
   * @param {object} message
-  * @param {string} attachment (any attachment data, that should be stored for the messages id)
   * @param {function} callback
   */
-  static addChatMessage(chatId, message, attachment, callback) {
+  static addChatMessage(chatId, message, callback) {
     // Test it the db is connected
     if (db.collection('chats')) {
       db.collection('chats').updateOne(
@@ -295,40 +309,17 @@ class ChatData {
         (err, r) => {
           // Test if the db update did work
           if (!err && r.modifiedCount === 1) {
-            // If there is an attachment, store it
-            if (attachment) {
-              let bucket = db.bucket(chatId);
-              if (bucket) {
-                let uploadStream = bucket.openUploadStream(message.id);
-                uploadStream.on('finish', () => {
-                  // Message added, attachment data added.
-                  setImmediate(() => {
-                    if (typeof callback === 'function') callback(true);
-                  });
-                }).on('error', (err) => {
-                  // Message added, attachment data failed to add. FIXME: Do something about this!
-                  setImmediate(() => {
-                    if (typeof callback === 'function') callback(true);
-                  });
-                });
-                uploadStream.end(''.concat(attachment));
-              } else {
-                // Message added, attachment data failed to add. FIXME: Do something about this!
-                setImmediate(() => {
-                  if (typeof callback === 'function') callback(true);
-                });
-              }
-            } else {
-              // Message without attachment data added successfully!
-              setImmediate(() => {
-                if (typeof callback === 'function') callback(true);
-              });
-            }
+            // Message added successfully!
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(true);
+            });
           } else {
             // No messages could be added
             setImmediate(() => {
               if (typeof callback === 'function') callback(false);
             });
+            // Log about this
+            Log.write(Log.DEBUG, 'Chat messages was not added for chat with id', chatId);
           }
       });
     } else {
@@ -419,38 +410,6 @@ class ChatData {
       });
       // Log about this
       Log.write(Log.DEBUG, 'User could not be updated for chat with id', chatId);
-    }
-  }
-
-  /**
-  * pipeAttachment() will pipe
-  * the attachment of a given
-  * message to a stream.
-  * If the attachment does not
-  * exist, this will terminate
-  * the stream.
-  *
-  * @param {string} chatId
-  * @param {string} messageId
-  * @param {stream} stream
-  */
-  static pipeAttachment(chatId, messageId, stream) {
-    // Get the neccessary bucket
-    let bucket = db.bucket(''.concat(chatId));
-    if (bucket) {
-      // Test if file exists
-      bucket.find({ filename: ''.concat(messageId) }, { fields: { filename: 1 } }).count({ limit: 1 }, (err, count) => {
-        if (!err && count === 1) {
-          // File exists, stream contents
-          bucket.openDownloadStreamByName(''.concat(messageId)).pipe(stream);
-        } else {
-          // No file, stop the stream
-          stream.end();
-        }
-      });
-    } else {
-      // No bucket, stop the stream
-      stream.end();
     }
   }
 

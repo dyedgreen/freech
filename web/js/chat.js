@@ -23,6 +23,10 @@ var freech = {
     usersTyping: [],
     messages: [],
     sendingMessages: [],
+    sendingFile: false, /* from 0-1000; false indicates no sending */
+    sendingFileData: '', /* holds the data for an ongoing transfer*/
+    sendingFileMessageId: '',
+    sendingFileLimits: { partSize: 8192 },
     totalMessageCount: -1,
     loadingOldMessages: false,
     socket: null,
@@ -70,8 +74,8 @@ var freech = {
   imageScale: function(dataURI, callback) {
     try {
       // Create the image resources
-      var maxHeight = 600;
-      var maxWidth = 600;
+      var maxHeight = 800;
+      var maxWidth = 800;
       var height = 0;
       var width = 0;
       var img = document.createElement('img');
@@ -396,14 +400,13 @@ var freech = {
     }
     return false;
   },
-  socketMessageNewMessage: function(text, image) {
+  socketMessageNewMessage: function(text) {
     if (freech.chatExists() && freech.chatUserExists()) {
       try {
         var time = Date.now();
         return JSON.stringify({
           type: 1,
           messageText: ''.concat(text),
-          messageImage: ''.concat(image),
           hash: freech.socketMessageHash(freech.data.users[freech.tempData.chatId].token, time),
           time: time,
         });
@@ -443,6 +446,36 @@ var freech = {
           messageId: ''.concat(messageId),
           hash: freech.socketMessageHash(freech.data.users[freech.tempData.chatId].token, time),
           time: time,
+        });
+      } catch (e) {}
+    }
+    return false;
+  },
+  socketMessageFile: function(fileName, fileType, fileSize, text) {
+    if (freech.chatExists() && freech.chatUserExists()) {
+      try {
+        var time = Date.now();
+        return JSON.stringify({
+          type: 5,
+          fileName: ''.concat(fileName),
+          fileType: ''.concat(fileType),
+          fileSize: +fileSize,
+          messageText: ''.concat(text),
+          hash: freech.socketMessageHash(freech.data.users[freech.tempData.chatId].token, time),
+          time: time,
+        });
+      } catch (e) {}
+    }
+    return false;
+  },
+  socketMessageFilePart: function(messageId, partIndex, data) {
+    if (freech.chatExists() && freech.chatUserExists()) {
+      try {
+        return JSON.stringify({
+          type: 6,
+          messageId: ''.concat(messageId),
+          partIndex: +partIndex,
+          part: ''.concat(data.substr(partIndex * freech.tempData.sendingFileLimits.partSize, freech.tempData.sendingFileLimits.partSize)),
         });
       } catch (e) {}
     }
@@ -490,11 +523,6 @@ var freech = {
                 if (dataObj.message.userId === freech.chatUserId()) freech.tempData.sendingMessages.shift();
                 // Hit the ui update callback
                 callbackMessagesLoaded(true);
-                // Load the image-attachments from the server
-                freech.attachmentGetImages(function(){
-                  // On image load, repeat ui update callback
-                  callbackMessagesLoaded(true);
-                });
                 break;
               }
               // New user-list was recived
@@ -524,20 +552,48 @@ var freech = {
                 if (dataObj.totalMessageCount > freech.tempData.messages.length) freech.tempData.loadingOldMessages = false;
                 // Old messages callback
                 callbackMessagesLoaded(false);
-                // Load the image-attachments from the server
-                freech.attachmentGetImages(function(){
-                  // On image load, repeat old messages callback
-                  callbackMessagesLoaded(false);
-                });
                 break;
               }
               // The requested email notification has been send
               case 21: {
                 // Test if the callback exists
-                if (freech.tempData.socketCallbacks.hasOwnProperty(21) && typeof freech.tempData.socketCallbacks[21] === 'function') {
+                if (typeof freech.tempData.socketCallbacks[21] === 'function') {
                   // Send data to the callback and clear the callback
                   freech.tempData.socketCallbacks[21](+dataObj.notificationCount);
                   freech.tempData.socketCallbacks[21] = null;
+                }
+                break;
+              }
+              // Handle file accept events
+              case 22: {
+                // Test if the callback exists and tell it if the file was accepted
+                if (typeof freech.tempData.socketCallbacks[22] === 'function') {
+                  // Send data to the callback and clear the callback
+                  freech.tempData.socketCallbacks[22](!!dataObj.accepted);
+                }
+                // Handle event
+                if (!!dataObj.accepted) {
+                  // Send first part
+                  freech.tempData.sendingFileMessageId = ''.concat(dataObj.messageId);
+                  freech.socketFilePart(freech.tempData.sendingFileMessageId, 0, freech.tempData.sendingFileData);
+                } else {
+                  // Cancel file upload
+                  freech.tempData.sendingFile = false;
+                  freech.tempData.sendingFileData = '';
+                }
+                break;
+              }
+              // Handle file part acc
+              case 23: {
+                // Send next part, or clear sending
+                if (typeof dataObj.nextIndex === 'number') {
+                  // Send next part
+                  freech.socketFilePart(freech.tempData.sendingFileMessageId, dataObj.nextIndex, freech.tempData.sendingFileData);
+                } else {
+                  // Error or success, we are done
+                  freech.tempData.sendingFile = false;
+                  freech.tempData.sendingFileData = '';
+                  freech.tempData.sendingFileMessageId = '';
                 }
                 break;
               }
@@ -566,14 +622,15 @@ var freech = {
       callbackClose();
     }
   },
-  socketSendMessage: function(text, image, callback) {
+  socketSendMessage: function(text, callback) {
     // Create the network message string
-    var socketMessage = freech.socketMessageNewMessage(text, image);
+    var socketMessage = freech.socketMessageNewMessage(text);
+    console.log(socketMessage);
     if (socketMessage && freech.tempData.connected) {
       // Send the message
       freech.tempData.socket.send(socketMessage, function() {
         // Add the messsage to the sending messages
-        freech.tempData.sendingMessages.push({ text: text, image: image });
+        freech.tempData.sendingMessages.push({ text: text });
         // Hit the callback
         callback(true);
       });
@@ -608,25 +665,30 @@ var freech = {
       freech.tempData.socket.send(socketMessage);
     }
   },
-
-  attachmentGetImages: function(callback) {
-    // Go through all messages and request the missing images
-    freech.tempData.messages.forEach(function(message, index) {
-      if (message.hasOwnProperty('image') && message.image === true) {
-        // Loads the message attachment image from the server
-        var path = '/api/chat/attachment/image/'.concat(freech.tempData.chatId).concat('/').concat(message.id);
-        Vue.http.get(path).then(function(res) {
-          if (res.data) {
-            // Store the data (USES VUE SET!)
-            Vue.set(freech.tempData.messages[index], 'image', res.data);
-            // Execute callback, if given
-            if (typeof callback === 'function') callback();
-          }
-        }, function() {
-          // Image failed to load ...
-        });
-      }
-    });
+  socketFile: function(fileName, fileType, text, data, callback) {
+    // Determine the files size
+    var fileSize = Math.ceil(''.concat(data).length / freech.tempData.sendingFileLimits.partSize);
+    // Handle a file upload (the upload is in part performed in the socket code, this function simply sets it up correctly)
+    var socketMessage = freech.socketMessageFile(fileName, fileType, fileSize, text);
+    if (socketMessage && freech.tempData.connected && freech.tempData.sendingFile === false) {
+      // Register the data
+      freech.tempData.sendingFile = 0;
+      freech.tempData.sendingFileData = ''.concat(data);
+      // Register the callback (this will get passed if the file was accepted)
+      freech.tempData.socketCallbacks[22] = callback;
+      // Send the message
+      freech.tempData.socket.send(socketMessage);
+    }
+  },
+  socketFilePart: function(messageId, partIndex, data) {
+    // Handle a file upload (the upload is in part performed in the socket code, this function simply sets it up correctly)
+    var socketMessage = freech.socketMessageFilePart(messageId, partIndex, data);
+    if (socketMessage && freech.tempData.connected && freech.tempData.sendingFile !== false) {
+      // Update progress
+      freech.tempData.sendingFile = Math.floor(1000 * partIndex / Math.ceil(''.concat(data).length / freech.tempData.sendingFileLimits.partSize));
+      // Send the message
+      freech.tempData.socket.send(socketMessage);
+    }
   },
 
 };
@@ -650,6 +712,7 @@ var ui = {
       createNewChat: false,
       createNewUser: false,
       createNewUserInput: false,
+      newFileError: false,
       settingsWarning: '',
     },
     loading: {
@@ -658,6 +721,7 @@ var ui = {
       creatingUser: false,
       sendingNewMessage: false,
       sendingEmailNotification: false,
+      sendingFileName: '', /* this is to make the ui nicer. Will not be cleared */
     },
     content: {
       shareUrl: '',
@@ -670,7 +734,7 @@ var ui = {
     newChatName: '',
     newUserName: '',
     newMessage: '',
-    newImage: '',
+    newFile: false, /* can be object: { name, type, data } */
   },
 
   // Feature support detected
@@ -705,17 +769,33 @@ var ui = {
     // TODO: Implement this
   },
 
-  // Updates the image upload data
-  updateImageUpload: function(inputElement) {
+  // Updates the file upload data
+  updateFileUpload: function(inputElement) {
     if (inputElement && inputElement.files && inputElement.files.length >= 1) {
       // Read the image data
       var reader = new FileReader();
       reader.onload = function(e) {
-        // Load the downscaled image
-        freech.imageScale(e.target.result, function(dataURI) {
-          ui.input.newImage = dataURI;
-          inputElement.value = null;
-        });
+        // Determine the file data
+        var file = {
+          name: ''.concat(inputElement.files[0].name),
+          type: ''.concat(inputElement.files[0].type),
+          data: ''.concat(e.target.result).split(',')[1], /* this gets only the data body */
+        };
+        // Clear the input element
+        inputElement.value = null;
+        // If the file as an image, down-scale it
+        if (file.type === 'image/png' || file.type === 'image/jpeg') {
+          freech.imageScale(e.target.result, function(newDataUri) {
+            // Test result and apply it
+            if (newDataUri.length > 0) {
+              file.data = newDataUri.split(',')[1];
+            }
+            ui.input.newFile = file;
+          });
+        } else {
+          // Store as input / display
+          ui.input.newFile = file;
+        }
       };
       reader.readAsDataURL(inputElement.files[0]);
     }
@@ -747,7 +827,7 @@ var ui = {
         var notification = new Notification(
           ''.concat(freech.getNameOfUser(latestMessage.userId).concat(' has sent a message')),
           {
-            body: latestMessage.text ? latestMessage.text : ''.concat(freech.getNameOfUser(latestMessage.userId)).concat(' has sent an image.'),
+            body: latestMessage.text ? latestMessage.text : ''.concat(freech.getNameOfUser(latestMessage.userId)).concat(' has sent a file.'),
           }
         );
       }
@@ -837,16 +917,15 @@ var ui = {
   // Event that sends a new message
   eventButtonSendNewMessage: function() {
     // TODO: Error messages for invalid input
-    if (ui.input.newMessage.length + ui.input.newImage.length > 0 && ui.input.newImage.length <= 2000000) {
+    if (ui.input.newMessage.length > 0) {
       // Display loading
       ui.data.loading.sendingNewMessage = true;
       // Send message
-      freech.socketSendMessage(ui.input.newMessage, ui.input.newImage, function(success) {
+      freech.socketSendMessage(ui.input.newMessage, function(success) {
         // Hide loading (This loading waits for the socket to drain, not for the acual package)
         ui.data.loading.sendingNewMessage = false;
         if (success) {
           // Clear the input
-          ui.input.newImage = '';
           ui.input.newMessage = '';
           // Scroll the chat to the bottom
           ui.chatScroll(true);
@@ -859,23 +938,51 @@ var ui = {
     }
   },
 
-  // Events that cancels an image send
-  eventButtonCancelImage: function() {
-    // Clear the image input
-    ui.input.newImage = '';
+  // Event that sends a new file
+  eventButtonSendNewFile: function() {
+    // TODO: Impement error message
+    // socketFile: function(fileName, fileType, text, data, callback)
+    if (ui.input.newFile !== false) {
+      // Display loading
+      ui.data.loading.sendingNewMessage = true;
+      ui.data.loading.sendingFileName = ui.input.newFile.name;
+      // Send to socket
+      freech.socketFile(ui.input.newFile.name, ui.input.newFile.type, ui.input.newMessage, ui.input.newFile.data, function(accepted) {
+        // Hide loading (This loading waits for the file to be accepted)
+        ui.data.loading.sendingNewMessage = false;
+        // Display error if not accepted
+        if (!accepted) {
+          ui.data.errors.newFileError = true;
+        } else {
+          // Clear the file upload and input
+          ui.input.newFile = false;
+          ui.input.newMessage = '';
+          ui.data.errors.newFileError = false;
+          // Scroll the chat to the bottom
+          ui.chatScroll(true);
+        }
+      });
+    }
   },
 
-  // Event that rotates an image send (is set)
+  // Events that cancels a file sending
+  eventButtonCancelFile: function() {
+    // Clear the file input and error
+    ui.input.newFile = false;
+    ui.data.errors.newFileError = false;
+  },
+
+  // Event that rotates an image send (is set) FIXME: Reimplement this later for new file handling
   eventButtonRotateImage: function() {
     // If image is set, rotate it 90 deg
-    if (ui.input.newImage !== '') {
+    /*if (ui.input.newImage !== '') {
       freech.imageRotate(ui.input.newImage, function(rotatedImage) {
         // If there where no errors, change the image
         if (rotatedImage) {
           ui.input.newImage = rotatedImage;
         }
       });
-    }
+    }*/
   },
 
   // Event that loads old messages
@@ -958,8 +1065,8 @@ var ui = {
 
   // Event loop, that sends out a 'typing' status
   loopDetectTyping: function() {
-    // If either image of text input
-    if (ui.input.newMessage.length + ui.input.newImage.length > 0) {
+    // If text input
+    if (ui.input.newMessage.length > 0) {
       freech.socketUpdateStatus('typing');
     }
   },
@@ -1038,6 +1145,10 @@ setInterval(function() {
   // Send typing events
   ui.loopDetectTyping();
 }, 3000);
+// Update scroll on resouce load (to avoid position jumps)
+window.addEventListener("load", function() {
+  ui.chatScroll(false);
+});
 
 
 // Timestamp filter, returns a formated time like 9:07
@@ -1156,9 +1267,8 @@ new Vue({
     buttonReconnect: ui.eventButtonReconnect,
     buttonToggleShare: ui.eventButtonToggleShare,
     buttonSendNewMessage: ui.eventButtonSendNewMessage,
-    buttonSendImage: ui.eventButtonSendImage,
-    buttonCancelImage: ui.eventButtonCancelImage,
-    buttonRotateImage: ui.eventButtonRotateImage,
+    buttonSendNewFile: ui.eventButtonSendNewFile,
+    buttonCancelFile: ui.eventButtonCancelFile,
     buttonLoadOldMessages: ui.eventButtonLoadOldMessages,
     buttonToggleSettings: ui.eventButtonToggleSettings,
     buttonToggleChatList: ui.eventButtonToggleChatList,

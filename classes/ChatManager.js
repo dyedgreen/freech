@@ -203,16 +203,6 @@ class ChatManager {
           }
           break;
         }
-        // Serve a chat attachment (currently only images)
-        case 'attachment': {
-          // format: api/chat/attachment/image/chatId/messageId
-          if (url.path.length == 6 && url.path[3] == 'image') {
-            // Try to fetch the image and send it to the request
-            ChatData.pipeAttachment(url.path[4], url.path[5], res);
-            return;
-          }
-          break;
-        }
       }
     }
     // General error response

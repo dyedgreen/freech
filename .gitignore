@@ -2,10 +2,12 @@
 .*
 *.log
 
-# Ignore the server secrets (e.g. ssl keys)
+# Ignore the server secrets (e.g. ssl keys) and chat data
 secret/
+data/
 
 # Ignore the test file and install instructions
 test.js
 install.txt
 api.txt
+package-lock.json

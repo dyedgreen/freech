@@ -65,61 +65,92 @@
 
         <!-- A single message -->
         <div v-for="message in freechTemp.messages" track-by="id" class="message {{ message.userId | userclass }}" transition="message">
-          <!-- Sender & Timestamp -->
-          <span v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
-          <!-- Message text -->
-          <p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
-          <!-- Spacing -->
-          <span v-if="message.hasOwnProperty('text') && message.hasOwnProperty('image')" style="display:block"></span>
-          <!-- Attached image -->
-          <img v-if="message.hasOwnProperty('image') && message.image !== true" v-bind:src="message.image">
-          <span v-if="message.hasOwnProperty('image') && message.image === true" class="image-loading">Loading ...</span>
-
-          <!-- Spacing -->
-          <span v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" style="display:block"></span>
-          <!-- Message Buttons (request email notification) -->
-          <a href="javascript:void(0)" v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" v-on:click="buttonRequestEmailNotification(message.id)" v-bind:class="{ 'loading': uiData.loading.sendingEmailNotification }" class="button">Send Notification</a>
-
-          <!-- System message -->
-          <span v-if="message.hasOwnProperty('systemMessage')" class="system-message">
-            <p>{{ message.systemMessage }}</p>
+          
+          <!-- Left/Right aligned content of standart size -->
+          <span class="content">
+            <!-- Sender & Timestamp -->
+            <span class="from" v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
+            
+            <!-- Text Message -->
+            <p class="text" v-if="message.hasOwnProperty('text') && !(message.hasOwnProperty('image') || message.hasOwnProperty('file'))">{{{ message.text | message }}}</p>
+            <!-- Message Buttons (request email notification) -->
+            <a href="javascript:void(0)" v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" v-on:click="buttonRequestEmailNotification(message.id)" v-bind:class="{ 'loading': uiData.loading.sendingEmailNotification }" class="button">Send Notification</a>
+            
+            <!-- File -->
+            <div v-if="message.hasOwnProperty('file')" class="file">
+              <h1 data-type="{{ message.file.name.split('.').reverse()[0] }}">{{ message.file.name }}</h1>
+              <p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
+            </div>
+            <a href="/api/file/{{ freechTemp.chatId }}/{{ message.id }}" target="_blank" v-if="message.hasOwnProperty('file')" class="button">Download</a>
           </span>
+          
+          <!-- Non standart content -->
+          <span class="content-wide">
+            <!-- Image -->
+            <span v-if="message.hasOwnProperty('image')" class="image">
+              <img src="/api/file/{{ freechTemp.chatId }}/{{ message.id }}">
+              <p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
+            </span>
+
+            <!-- System message -->
+            <span v-if="message.hasOwnProperty('systemMessage')" class="system-message">
+              <p>{{ message.systemMessage }}</p>
+            </span>
+          </span>
+          
         </div>
 
         <!-- A sending message -->
         <div v-for="message in freechTemp.sendingMessages" class="message sending">
-          <!-- Sending indication -->
-          <span>Sending ...</span>
-          <!-- Message text -->
-          <p v-if="message.text">{{{ message.text | message }}}</p>
-          <!-- Spacing -->
-          <span v-if="message.text && message.image" style="display:block"></span>
-          <!-- Attached image -->
-          <img v-if="message.image" v-bind:src="message.image">
+          <!-- Left/Right aligned content -->
+          <span class="content">
+            <!-- Sending indication -->
+            <span class="from">Sending ...</span>
+            <!-- Message text -->
+            <p class="text">{{{ message.text | message }}}</p>
+          </span>
+        </div>
+        
+        <!-- A sending file -->
+        <div v-if="freechTemp.sendingFile !== false" class="message sending">
+          <!-- Left/Right aligned content of standart size -->
+          <span class="content">
+            <!-- Sending indication -->
+            <span class="from">Sending ...</span>
+            <!-- File -->
+            <div class="file">
+              <h1 data-type="{{ Math.floor(freechTemp.sendingFile / 10) }}%">{{ uiData.loading.sendingFileName }}</h1>
+            </div>
+          </span>
         </div>
 
       </div>
       <!-- Send Input -->
       <div class="compose" v-bind:class="{ 'sending': uiData.loading.sendingNewMessage }">
         <input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="What's on your mind?">
-        <label class="attach" for="image"></label>
-        <input id="image" name="image" type="file" accept="image/*" onchange="ui.updateImageUpload(this)">
+        <label class="attach" v-bind:class="{ 'sending': freechTemp.sendingFile !== false }" for="file"></label>
+        <input id="file" name="file" type="file" onchange="ui.updateFileUpload(this)">
         <a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="send">Send</a>
       </div>
     </div>
 
-    <!-- Send Image Modal -->
-    <div class="modal-bg" v-if="input.newImage != ''" transition="modal">
+    <!-- Send File Modal -->
+    <div class="modal-bg" v-if="input.newFile !== false" transition="modal">
       <div class="modal">
-        <!-- Image preview -->
-        <img v-bind:src="input.newImage">
+        <!-- The Error Feedback -->
+        <span class="error" v-if="uiData.errors.newFileError">The file seems to be too big.</span>
+        <!-- Header -->
+        <h1>Send a file</h1>
+        <!-- File preview -->
+        <div class="file">
+          <h1 data-type="{{ input.newFile.name.split('.').reverse()[0] }}">{{ input.newFile.name }}</h1>
+        </div>
         <!-- Add a comment -->
-        <input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewMessage" placeholder="Add a comment.">
-        <!-- Send, Rotate, and Cancel -->
+        <input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewFile" placeholder="Add a comment.">
+        <!-- Send, Cancel -->
         <span class="multi-button">
-          <a href="javascript:void(0)" v-on:click="buttonSendNewMessage" class="button" v-bind:class="{ 'loading': uiData.loading.sendingNewMessage }">Send Image</a>
-          <a href="javascript:void(0)" v-on:click="buttonRotateImage" class="button dark">Rotate</a>
-          <a href="javascript:void(0)" v-show="!uiData.loading.sendingNewMessage" v-on:click="buttonCancelImage" class="button yellow">Cancel</a>
+          <a href="javascript:void(0)" v-on:click="buttonSendNewFile" class="button" v-bind:class="{ 'loading': uiData.loading.sendingNewMessage }">Send</a>
+          <a href="javascript:void(0)" v-show="!uiData.loading.sendingNewMessage" v-on:click="buttonCancelFile" class="button yellow">Cancel</a>
         </span>
       </div>
     </div>

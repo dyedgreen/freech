@@ -11,6 +11,8 @@ const ApiResponse = require('./ApiResponse.js');
 const Url = require('./Url.js');
 const Mail = require('./Mail.js');
 const ChatManager = require('./ChatManager.js');
+const ChatFiles = require('./ChatFiles.js');
+
 
 /**
 * ChatServer
@@ -131,6 +133,9 @@ class ChatServer {
           } else if (url.path[1] === 'mail') {
             // Endpoint is mail
             Mail.resolve(url, res);
+          } else if (url.path[1] === 'file') {
+            // Endpoint is files
+            ChatFiles.resolve(url, res);
           } else {
             // General error response
             ApiResponse.sendData(res, null, true);
