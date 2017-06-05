@@ -72,13 +72,22 @@
             <span class="from" v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
             
             <!-- Text Message -->
-            <p class="text" v-if="message.hasOwnProperty('text') && !(message.hasOwnProperty('image') || message.hasOwnProperty('file'))">{{{ message.text | message }}}</p>
+            <span class="text" v-if="message.hasOwnProperty('text') && !(message.hasOwnProperty('image') || message.hasOwnProperty('file'))">
+              <!-- Url Preview -->
+              <a class="url-preview" v-if="message.hasOwnProperty('urlPreview')" href="{{{ message.urlPreview.url }}}" target="_blank">
+                <img v-if="message.urlPreview.hasOwnProperty('image')" src="{{{ message.urlPreview.image }}}" onload="if (this.width === this.height) this.classList.add('icon')">
+                <h1>{{ message.urlPreview.title }}</h1>
+                <h2 v-if="message.urlPreview.hasOwnProperty('description')">{{ message.urlPreview.description }}</h2>
+              </a>
+              <!-- Message content -->
+              <p>{{{ message.text | message }}}</p>
+            </span>
             <!-- Message Buttons (request email notification) -->
             <a href="javascript:void(0)" v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" v-on:click="buttonRequestEmailNotification(message.id)" v-bind:class="{ 'loading': uiData.loading.sendingEmailNotification }" class="button">Send Notification</a>
             
             <!-- File -->
             <div v-if="message.hasOwnProperty('file')" class="file">
-              <h1 data-type="{{ message.file.name.split('.').reverse()[0] }}">{{ message.file.name }}</h1>
+              <h1 data-type="{{ message.file.name.split('.').reverse()[0].substr(0,5) }}">{{ message.file.name }}</h1>
               <p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
             </div>
             <a href="/api/file/{{ freechTemp.chatId }}/{{ message.id }}" target="_blank" v-if="message.hasOwnProperty('file')" class="button">Download</a>
@@ -107,7 +116,10 @@
             <!-- Sending indication -->
             <span class="from">Sending ...</span>
             <!-- Message text -->
-            <p class="text">{{{ message.text | message }}}</p>
+            <!-- Text Message -->
+            <span class="text">
+              <p class="text">{{{ message.text | message }}}</p>
+            </span>
           </span>
         </div>
         
@@ -143,7 +155,7 @@
         <h1>Send a file</h1>
         <!-- File preview -->
         <div class="file">
-          <h1 data-type="{{ input.newFile.name.split('.').reverse()[0] }}">{{ input.newFile.name }}</h1>
+          <h1 data-type="{{ input.newFile.name.split('.').reverse()[0].substr(0,5) }}">{{ input.newFile.name }}</h1>
         </div>
         <!-- Add a comment -->
         <input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewFile" placeholder="Add a comment.">

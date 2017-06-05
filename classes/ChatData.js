@@ -224,6 +224,7 @@ class ChatData {
                     };
                   }
                   if (dbEntry.hasOwnProperty('emails')) message.emails = [].concat(dbEntry.emails);
+                  if (typeof dbEntry.urlPreview === 'object') message.urlPreview = dbEntry.urlPreview;
                   if (dbEntry.hasOwnProperty('systemMessage')) message.systemMessage = ''.concat(dbEntry.systemMessage);
                   // Add the message to the list
                   messages.push(message);

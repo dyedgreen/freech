@@ -458,7 +458,7 @@ var freech = {
         return JSON.stringify({
           type: 5,
           fileName: ''.concat(fileName),
-          fileType: ''.concat(fileType),
+          fileType: ''.concat(fileType).length > 0 ? ''.concat(fileType) : 'text/plain',
           fileSize: +fileSize,
           messageText: ''.concat(text),
           hash: freech.socketMessageHash(freech.data.users[freech.tempData.chatId].token, time),

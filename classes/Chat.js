@@ -4,6 +4,7 @@
 // Imports
 const Log = require('./Log.js');
 const RandString = require('./RandString.js');
+const OpenGraph = require('./OpenGraph.js');
 const Mail = require('./Mail.js');
 const ChatData = require('./ChatData.js');
 const ChatFiles = require('./ChatFiles.js');
@@ -588,18 +589,23 @@ class Chat {
         // Add the emails to the message
         newMessage.emails = emails;
       }
-      // Store the new message and send it to connected users
-      ChatData.addChatMessage(this.id, newMessage, success => {
-        // Currently, this fails silently (FIXME)
-        if (success) {
-          // Increment the message count
-          this.messageCount ++;
-          // Catch everone up on the exiting news
-          this.pushNewMessage(newMessage);
-        } else {
-          // Log this
-          Log.write(Log.WARNING, 'Message could not be stored for chat with id', this.id);
-        }
+      // Test for open graph / twitter card content (this is async, but crawler uses tight timeouts)
+      OpenGraph.crawlFromString(newMessage.text, urlPreview => {
+        // Add the url preview if available
+        if (urlPreview) newMessage.urlPreview = urlPreview;
+        // Store the new message and send it to connected users
+        ChatData.addChatMessage(this.id, newMessage, success => {
+          // Currently, this fails silently (FIXME)
+          if (success) {
+            // Increment the message count
+            this.messageCount ++;
+            // Catch everone up on the exiting news
+            this.pushNewMessage(newMessage);
+          } else {
+            // Log this
+            Log.write(Log.WARNING, 'Message could not be stored for chat with id', this.id);
+          }
+        });
       });
       // Success feedback (store attempt made)
       return true;

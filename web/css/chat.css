@@ -537,14 +537,19 @@ html {
 }
 
 .chat .message .text {
+  width:100%;
+  height:auto;
+  display:block;
+
   border-radius:10px;
+  overflow:hidden;
 }
 .chat .message .text .email {
   font-weight:700;
   font-style:italic;
   color:inherit;
 }
-.chat .message .text,
+.chat .message .text p,
 .chat .message .image p,
 .chat .message .file p {
   width:100%;
@@ -559,7 +564,7 @@ html {
 
   color:#fff;
 }
-.chat .message .text a,
+.chat .message .text p a,
 .chat .message .image p a,
 .chat .message .file p a {
   display:inline-block;
@@ -574,11 +579,79 @@ html {
 
   transition:all .1s;
 }
-.chat .message .text a:hover,
+.chat .message .text p a:hover,
 .chat .message .image p a:hover,
 .chat .message .file p a:hover {
   background:rgba(0,0,0,0.2);
   box-shadow:0 0 0 4px rgba(0,0,0,0.2);
+}
+
+.chat .message .text .url-preview {
+  width:100%;
+  height:auto;
+  padding:15px;
+  display:block;
+
+  text-decoration:none;
+
+  color:#fff;
+  background:rgba(0,0,0,0.1);
+
+  overflow:hidden;
+  transition:.1s;
+}
+.chat .message .text .url-preview:after {
+  width:100%;
+  height:20px;
+  display:block;
+  margin:5px 0 0 0;
+
+  font-size:18px;
+  font-weight:500;
+  line-height:20px;
+  text-align:left;
+  text-overflow:ellipsis;
+
+  color:rgba(255,255,255,0.5);
+
+  white-space:nowrap;
+  overflow:hidden;
+  content:attr(href);
+}
+.chat .message .text .url-preview:hover {
+  background:rgba(0,0,0,0.2);
+}
+.chat .message .text .url-preview h1,
+.chat .message .text .url-preview h2 {
+  width:100%;
+  height:auto;
+  display:block;
+
+  font-size:18px;
+  font-weight:700;
+  line-height:20px;
+  text-align:left;
+
+  color:#fff;
+  background:none;
+}
+.chat .message .text .url-preview h2 {
+  font-weight:400;
+}
+.chat .message .text .url-preview img {
+  width:100%;
+  height:auto;
+  display:block;
+  margin:0 0 10px 0;
+
+  border-radius:10px;
+  background:none;
+}
+.chat .message .text .url-preview img.icon {
+  width:50px;
+  height:50px;
+  margin:0 auto 10px 0;
+  border-radius:0;
 }
 
 .chat .message .file,
