@@ -534,7 +534,7 @@ class Chat {
         systemMessage: ''.concat(text).substr(0, 1000),
       };
       // Store the new message and send it to connected users
-      ChatData.addChatMessage(this.id, newMessage, null, success => {
+      ChatData.addChatMessage(this.id, newMessage, success => {
         // Currently, this fails silently (FIXME)
         if (success) {
           // Increment the message count

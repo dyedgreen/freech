@@ -512,6 +512,8 @@ var freech = {
                 freech.data.users[freech.tempData.chatId].chatName = dataObj.chatName;
                 // Fix state
                 freech.dataStore();
+                // Load some old messages messages (now the user is registered as connected)
+                freech.socketLoadOldMessages();
                 break;
               }
               // New messages was pushed by the server (WILL CALL UI_UPDATE CALLBACK)
@@ -611,8 +613,6 @@ var freech = {
           // Store the socket and set it to connected
           freech.tempData.socket = socket;
           freech.tempData.connected = true;
-          // Load some messages
-          freech.socketLoadOldMessages();
           // Call the open callback
           callbackOpen();
         });
@@ -1172,6 +1172,25 @@ Vue.filter('timestamp', function(value) {
   }
   return value;
 });
+// Timestamp (short), returns a formated time/date, but ommits information to keep it short
+Vue.filter('shorttimestamp', function(value) {
+  if (typeof value === 'number' || /^[0-9]+$/i.test(value)) {
+    var months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
+    var date = new Date(+value);
+    var dateNow = new Date();
+    // If the value is a time yesterday, attach the date
+    if (
+      Date.now() - value > 86400000 || /* Is more than 24 hours old */
+      date.getHours() > dateNow.getHours() || /* Is a hour that had to be yesterday */
+      (date.getHours() === dateNow.getHours() && date.getMinutes() > dateNow.getMinutes()) /* IS a minute that had to be yesterday */
+    ) {
+      return ''.concat(date.getDate()).concat('. ').concat(months[date.getMonth()]).concat(' ').concat(date.getFullYear());
+    } else {
+      return ''.concat(date.getHours()).concat(':').concat(date.getMinutes() > 9 ? date.getMinutes() : '0'.concat(date.getMinutes()));
+    }
+  }
+  return value;
+});
 // Userclass filter, returns the correct conditional classes for an userId
 Vue.filter('userclass', function(value) {
   var colors = ['blue', 'pink', 'green', 'red', 'yellow', 'orange', 'purple'];
@@ -1206,22 +1225,21 @@ Vue.filter('message', function(value) {
   var valueArray = [];
   value.split(' ').forEach(function(word) {
     // Test if the word is special
-    if (/^(https?:\/\/)?([^\s\@\/\.]+\.)?[^\s\@\/\.]+\.[^\d\s\@\/\.]{2,}(\/[^\s]*)?$/i.test(word)) {
+    var urlRegExp = /(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)*/i;
+    if (/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/i.test(word)) {
+     // The word is a valid e-mail address, make it bold
+     valueArray.push('<span class="email">');
+     valueArray.push(word);
+     valueArray.push('</span>');
+   } else if (urlRegExp.test(word)) {
       // The word is a valid url
-      var url = ''.concat(word);
+      var url = ''.concat(urlRegExp.exec(word)[0]);
       // Work out if protocol is in url
       if (!/^https?:\/\//i.test(url)) url = 'http://'.concat(url);
-      // Remove any punctuation at the end (as of now, this catches only one!)
-      if (/[\.\,\;\:\-\–\…\?\!\/\(\)]$/i.test(url)) url = url.substr(0, url.length - 1);
       // Add the url to the array
       valueArray.push('<a href="'.concat(url).concat('" target="_blank" rel="noopener noreferrer">'));
       valueArray.push(word);
       valueArray.push('</a>');
-    } else if (/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/i.test(word)) {
-      // The word is a valid e-mail address, make it bold
-      valueArray.push('<span class="email">');
-      valueArray.push(word);
-      valueArray.push('</span>');
     } else {
       valueArray.push(word);
     }
@@ -1246,6 +1264,26 @@ Vue.filter('message', function(value) {
 // Share URL filter, turns chatIds into share urls
 Vue.filter('shareurl', function(value) {
   return ''.concat(freech.urlGetPlain()).concat('?').concat(value);
+});
+// Filename filter, shortens filenames if necessary
+Vue.filter('filename', function(value) {
+  if (typeof value === 'string') {
+    // Get the file-type and shorten the name
+    var fileType = '';
+    var fileName = value;
+    var fileNameArray = value.split('.');
+    if (fileNameArray.length > 1) {
+      fileType = '.'.concat(fileNameArray.reverse()[0]);
+      fileNameArray.reverse();
+      fileNameArray.pop();
+      fileName = fileNameArray.join('');
+    }
+    if (fileName.length > 30) {
+      fileName = fileName.substr(0, 25).concat('[...]');
+    }
+    return fileName.concat(fileType);
+  }
+  return value;
 });
 
 

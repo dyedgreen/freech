@@ -132,8 +132,17 @@ class OpenGraph {
   *
   * @param {string} url (must be http(s)://)
   * @param {function} callback
+  * @param {number} redirectCount (optional, caps at 3)
   */
-  static crawlSite(url, callback) {
+  static crawlSite(url, callback, redirectCount) {
+    // Process redirect count
+    if (typeof redirectCount !== 'number') {
+      redirectCount = 0;
+    } else if (redirectCount > 3) {
+      // More than 3 redirects are not allowed, cancle the crawl
+      callback(false);
+      return;
+    }
     // Retrive the html content of the url
     if (''.concat(url).substr(0, 7).toLowerCase() === 'http://' || ''.concat(url).substr(0, 8).toLowerCase() === 'https://') {
       // Make the request
@@ -150,6 +159,18 @@ class OpenGraph {
             if (result !== false) result.url = ''.concat(url);
             callback(result);
           });
+        } else if (res.statusCode > 300 && res.statusCode < 400) {
+          // Get new url and consume the current response
+          res.resume();
+          const redirectUrl = ''.concat(res.headers['location']);
+          // Validate th supplied url
+          if (/^(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)*$/i.test(redirectUrl)) {
+            // Try a new crawl
+            this.crawlSite(redirectUrl, callback, redirectCount + 1);
+          } else {
+            // Malformed redirect url
+            callback(false);
+          }
         } else {
           // The request has a problem to it, consume the response and fire callback
           res.resume();
@@ -187,7 +208,7 @@ class OpenGraph {
     const urls = /(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)*/i.exec(''.concat(text));
     if (urls !== null) {
       // Crawl the site
-      this.crawlSite(''.concat(urls[0].substr(0, 4).toLowerCase() === 'http' ? '' : 'https://').concat(urls[0]), callback);
+      this.crawlSite(''.concat(urls[0].substr(0, 4).toLowerCase() === 'http' ? '' : 'http://').concat(urls[0]), callback);
     } else {
       // No urls found
       callback(false);

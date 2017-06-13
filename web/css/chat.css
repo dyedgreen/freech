@@ -84,7 +84,7 @@ html {
 .sidebar .button {
   width:100%;
   height:50px;
-  padding:0 25px;
+  padding:0 25px 0 50px;
   display:block;
   position:absolute;
   top:auto; right:0; bottom:0; left:0;
@@ -98,15 +98,56 @@ html {
 
   color:rgba(255,255,255,0.5);
   background:none;
+  background-color:rgba(255,255,255,0.1);
+  background-position:0 -375px;
 
   transition:.1s;
   cursor:pointer;
+  overflow:hidden;
+  white-space:nowrap;
+}
+.sidebar .button:before {
+  width:25px;
+  height:25px;
+  display:block;
+  position:absolute;
+  top:13px; right:auto; bottom:0; left:13px;
+
+  background:none;
+  background-image:url(/images/ui-icons.svg);
+  background-size:75px 275px;
+  background-position:inherit;
+  background-repeat:no-repeat;
+
+  transition:inherit;
+  opacity:0.5;
+  content:"";
 }
 .sidebar .button:hover,
 .sidebar .button:active,
 .sidebar .button:focus {
   color:#fff;
-  background:#2EC4B6;
+  background-color:#2EC4B6;
+}
+.sidebar .button:hover:before,
+.sidebar .button:active:before,
+.sidebar .button:focus:before {
+  opacity:1;
+}
+.sidebar .button.share {
+  background-position:-50px -225px;
+}
+.sidebar .button.chats {
+  background-position:-25px -225px;
+}
+.sidebar .button.settings {
+  background-position:-25px -250px;
+}
+.sidebar .button.plus {
+  background-position:0 -225px;
+}
+.sidebar .button.minus {
+  background-position:0 -250px;
 }
 
 .sidebar .more {
@@ -386,16 +427,16 @@ html {
   top:0; right:100px; bottom:0; left:auto;
 
   background:none;
-  background-image:url(/images/file.svg);
-  background-position:0 150px;
-  background-size:75px 225px;
+  background-image:url(/images/ui-icons.svg);
+  background-position:0 -75px;
+  background-size:75px 275px;
 
   cursor:pointer;
 }
 .chat .compose .attach:hover,
 .chat .compose .attach:active,
 .chat .compose .attach:focus {
-  background-position:0 75px;
+  background-position:0 -150px;
 }
 .chat .compose .attach.sending {
   opacity:0.5;
@@ -700,9 +741,9 @@ html {
   color:rgba(0,0,0,0.5);
 
   background:none;
-  background-image:url(/images/file.svg);
+  background-image:url(/images/ui-icons.svg);
   background-position:12px 12px;
-  background-size:75px 225px;
+  background-size:75px 275px;
   background-repeat:no-repeat;
 
   content:attr(data-type);

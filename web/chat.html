@@ -33,21 +33,21 @@
       <h1>{{ freechTemp.chatName }}</h1>
       <!-- The list with all people -->
       <div class="scroll">
-        <div v-for="user in freechTemp.userList" data-last-seen="Seen {{ user.lastSeen | timestamp }}" class="person {{ user.id | userclass }}">
+        <div v-for="user in freechTemp.userList" data-last-seen="Last seen {{ user.lastSeen | shorttimestamp }}" class="person {{ user.id | userclass }}">
           <span>{{ user.name }}</span>
         </div>
       </div>
       <!-- Button Sheet -->
       <div class="more" v-show="uiData.modals.sidebarMore">
         <!-- The Share Button -->
-        <a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button">Invite a friend</a>
+        <a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button share">Invite a friend</a>
         <!-- The My Chats Button -->
-        <a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button">Your Chats</a>
+        <a href="javascript:void(0)" v-on:click="buttonToggleChatList" class="button chats">Your Chats</a>
         <!-- The Settings Button -->
-        <a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Settings</a>
+        <a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button settings">Settings</a>
       </div>
       <!-- More Button -->
-      <a href="javascript:void(0)" v-on:click="buttonToggleSidebarMore" class="button">{{ uiData.modals.sidebarMore ? 'Less' : 'More' }}</a>
+      <a href="javascript:void(0)" v-on:click="buttonToggleSidebarMore" class="button {{ uiData.modals.sidebarMore ? 'minus' : 'plus' }}">{{ uiData.modals.sidebarMore ? 'Less' : 'More' }}</a>
     </div>
 
     <!-- The Chat -->
@@ -65,16 +65,16 @@
 
         <!-- A single message -->
         <div v-for="message in freechTemp.messages" track-by="id" class="message {{ message.userId | userclass }}" transition="message">
-          
+
           <!-- Left/Right aligned content of standart size -->
           <span class="content">
             <!-- Sender & Timestamp -->
             <span class="from" v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
-            
+
             <!-- Text Message -->
             <span class="text" v-if="message.hasOwnProperty('text') && !(message.hasOwnProperty('image') || message.hasOwnProperty('file'))">
               <!-- Url Preview -->
-              <a class="url-preview" v-if="message.hasOwnProperty('urlPreview')" href="{{{ message.urlPreview.url }}}" target="_blank">
+              <a class="url-preview" v-if="message.hasOwnProperty('urlPreview')" href="{{{ message.urlPreview.url }}}" target="_blank" rel="noopener noreferrer">
                 <img v-if="message.urlPreview.hasOwnProperty('image')" src="{{{ message.urlPreview.image }}}" onload="if (this.width === this.height) this.classList.add('icon')">
                 <h1>{{ message.urlPreview.title }}</h1>
                 <h2 v-if="message.urlPreview.hasOwnProperty('description')">{{ message.urlPreview.description }}</h2>
@@ -84,15 +84,15 @@
             </span>
             <!-- Message Buttons (request email notification) -->
             <a href="javascript:void(0)" v-if="message.hasOwnProperty('emails') && message.userId === chatUserId()" v-on:click="buttonRequestEmailNotification(message.id)" v-bind:class="{ 'loading': uiData.loading.sendingEmailNotification }" class="button">Send Notification</a>
-            
+
             <!-- File -->
             <div v-if="message.hasOwnProperty('file')" class="file">
-              <h1 data-type="{{ message.file.name.split('.').reverse()[0].substr(0,5) }}">{{ message.file.name }}</h1>
+              <h1 data-type="{{ message.file.name.split('.').reverse()[0].substr(0,5) }}">{{ message.file.name | filename }}</h1>
               <p v-if="message.hasOwnProperty('text')">{{{ message.text | message }}}</p>
             </div>
             <a href="/api/file/{{ freechTemp.chatId }}/{{ message.id }}" target="_blank" v-if="message.hasOwnProperty('file')" class="button">Download</a>
           </span>
-          
+
           <!-- Non standart content -->
           <span class="content-wide">
             <!-- Image -->
@@ -106,7 +106,7 @@
               <p>{{ message.systemMessage }}</p>
             </span>
           </span>
-          
+
         </div>
 
         <!-- A sending message -->
@@ -122,7 +122,7 @@
             </span>
           </span>
         </div>
-        
+
         <!-- A sending file -->
         <div v-if="freechTemp.sendingFile !== false" class="message sending">
           <!-- Left/Right aligned content of standart size -->
@@ -155,7 +155,7 @@
         <h1>Send a file</h1>
         <!-- File preview -->
         <div class="file">
-          <h1 data-type="{{ input.newFile.name.split('.').reverse()[0].substr(0,5) }}">{{ input.newFile.name }}</h1>
+          <h1 data-type="{{ input.newFile.name.split('.').reverse()[0].substr(0,5) }}">{{ input.newFile.name | filename }}</h1>
         </div>
         <!-- Add a comment -->
         <input type="text" v-model="input.newMessage" v-on:keyup.enter="buttonSendNewFile" placeholder="Add a comment.">
