@@ -588,9 +588,12 @@ class Chat {
       if (Array.isArray(emails) && emails.length > 0) {
         // Add the emails to the message
         newMessage.emails = emails;
+        // Remove the emails from the string that is matched against the url regex
+        messageText = messageText.substr(0, 2000);
+        emails.forEach(emailString => messageText = messageText.replace(emailString, ''));
       }
       // Test for open graph / twitter card content (this is async, but crawler uses tight timeouts)
-      OpenGraph.crawlFromString(newMessage.text, urlPreview => {
+      OpenGraph.crawlFromString(messageText, urlPreview => {
         // Add the url preview if available
         if (urlPreview) newMessage.urlPreview = urlPreview;
         // Store the new message and send it to connected users

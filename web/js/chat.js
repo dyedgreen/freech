@@ -1225,13 +1225,13 @@ Vue.filter('message', function(value) {
   var valueArray = [];
   value.split(' ').forEach(function(word) {
     // Test if the word is special
-    var urlRegExp = /(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)*/i;
+    var urlRegExp = /(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)/i;
     if (/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/i.test(word)) {
      // The word is a valid e-mail address, make it bold
      valueArray.push('<span class="email">');
      valueArray.push(word);
      valueArray.push('</span>');
-   } else if (urlRegExp.test(word)) {
+   } else if (urlRegExp.test(word) && !/(\.\.\.)/.test(word)) {
       // The word is a valid url
       var url = ''.concat(urlRegExp.exec(word)[0]);
       // Work out if protocol is in url

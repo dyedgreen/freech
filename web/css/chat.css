@@ -1373,7 +1373,7 @@ html {
 
 /* SMALL SCREENS */
 
-@media (max-width: 600px) {
+@media (max-width: 725px) {
   /* SIDEBAR */
   .sidebar {
     /*WIP*/

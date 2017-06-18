@@ -131,7 +131,7 @@
             <span class="from">Sending ...</span>
             <!-- File -->
             <div class="file">
-              <h1 data-type="{{ Math.floor(freechTemp.sendingFile / 10) }}%">{{ uiData.loading.sendingFileName }}</h1>
+              <h1 data-type="{{ Math.floor(freechTemp.sendingFile / 10) }}%">{{ uiData.loading.sendingFileName | filename }}</h1>
             </div>
           </span>
         </div>

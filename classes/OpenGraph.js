@@ -39,7 +39,7 @@ class OpenGraph {
       ['nbsp', ' '],
       ['quot', '"']
     ];
-    for (let i = 0, max = entities.length; i < max; ++i) {
+    for (let i = 0; i < entities.length; ++i) {
       html = html.replace(new RegExp('&'+entities[i][0]+';', 'g'), entities[i][1]);
     }
     return html;
@@ -164,7 +164,7 @@ class OpenGraph {
           res.resume();
           const redirectUrl = ''.concat(res.headers['location']);
           // Validate th supplied url
-          if (/^(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)*$/i.test(redirectUrl)) {
+          if (redirectUrl.length > 0) {
             // Try a new crawl
             this.crawlSite(redirectUrl, callback, redirectCount + 1);
           } else {
@@ -179,6 +179,9 @@ class OpenGraph {
       }).on('error', () => {
         // Something went wrong
         callback(false);
+      }).on('aborted', () => {
+        // The rquest has been aborted
+        callback(false);
       });
       // Set (short) timeout
       req.setTimeout(3000, () => {
@@ -190,7 +193,6 @@ class OpenGraph {
       callback(false);
     }
   }
-
 
   /**
   * crawlFromString() takes a
@@ -205,8 +207,8 @@ class OpenGraph {
   */
   static crawlFromString(text, callback) {
     // Find urls in text
-    const urls = /(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)*/i.exec(''.concat(text));
-    if (urls !== null) {
+    const urls = ''.concat(text).match(/(https?:\/\/)?([\da-z\.-]{1,20}\.)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.\-\?\&\=\#]*)/i);
+    if (Array.isArray(urls) && urls.length > 0) {
       // Crawl the site
       this.crawlSite(''.concat(urls[0].substr(0, 4).toLowerCase() === 'http' ? '' : 'http://').concat(urls[0]), callback);
     } else {
