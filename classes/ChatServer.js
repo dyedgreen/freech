@@ -194,8 +194,12 @@ class ChatServer {
   handleRedirect(req, res) {
     // Log about this
     Log.write(Log.DEBUG, 'Redirect server request recived');
-    // Send the redirect
-    if (this.redirect !== false) {
+    // Send the redirect unless it's the let's enctypt path: .well-known
+    const url = new Url(req.url);
+    if (url.path.length > 0 && url.path[0] === '.well-known') {
+      // Handle files normally (let's-encrypt challange)
+      this.handleRequest(req, res);
+    } else if (this.redirect !== false) {
       res.writeHead(301, {
         'Location': `https://${this.redirect.location}`,
       });
