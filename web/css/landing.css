@@ -92,7 +92,7 @@ html {
   margin:25px 50px 25px 25px;
 
   background:#fff;
-  background-image:url(/images/icons.svg);
+  background-image:url(/images/landing-icons.svg);
   background-size:75px 375px;
   background-repeat:no-repeat;
   box-shadow:0 0 0 25px rgba(0,0,0,0.2);
@@ -159,10 +159,10 @@ html {
   background:rgba(0,0,0,0.5);
 }
 
-.feature.camera {
+.feature.file {
   background:#FF9F1C;
 }
-.feature.camera .icon {
+.feature.file .icon {
   background-position:0px 0px;
 }
 .feature.mask {

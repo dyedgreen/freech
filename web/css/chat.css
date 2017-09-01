@@ -134,6 +134,9 @@ html {
 .sidebar .button:focus:before {
   opacity:1;
 }
+.sidebar .button.account {
+  background-position:-50px -250px;
+}
 .sidebar .button.share {
   background-position:-50px -225px;
 }
@@ -1047,6 +1050,10 @@ html {
   white-space:nowrap;
   overflow:hidden;
 }
+.modal .url.noqr .title {
+  position:relative;
+  top:auto; right:auto; bottom:auto; left:auto;
+}
 .modal .url .text {
   width:auto;
   height:auto;
@@ -1058,6 +1065,10 @@ html {
   color:inherit;
 
   overflow:hidden;
+}
+.modal .url.noqr .text {
+  position:relative;
+  top:auto; right:auto; bottom:auto; left:auto;
 }
 .modal .url:hover .text {
   text-decoration:underline;

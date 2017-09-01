@@ -1,6 +1,7 @@
 # Ignore log and system files
 .*
 *.log
+.DS_Store
 
 # Ignore the server secrets (e.g. ssl keys) and chat data
 secret/

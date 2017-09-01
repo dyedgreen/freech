@@ -39,6 +39,8 @@
       </div>
       <!-- Button Sheet -->
       <div class="more" v-show="uiData.modals.sidebarMore">
+        <!-- The Export User Button -->
+        <a href="javascript:void(0)" v-on:click="buttonToggleAccount" class="button account">Account</a>
         <!-- The Share Button -->
         <a href="javascript:void(0)" v-on:click="buttonToggleShare" class="button share">Invite a friend</a>
         <!-- The My Chats Button -->
@@ -215,6 +217,28 @@
         </span>
         <!-- Close -->
         <a href="javascript:void(0)" v-on:click="buttonToggleSettings" class="button">Done</a>
+      </div>
+    </div>
+
+    <!-- Export User Modal -->
+    <div class="modal-bg" v-if="uiData.modals.account" transition="modal">
+      <div class="modal">
+        <!-- The Export Warning -->
+        <span class="error">Everyone with access to this link can login to this chat as <b>{{ chatUserName() }}</b>.</span>
+        <h1>Export your account</h1>
+        <p>To open this chat in a different browser, please copy the link below.</p>
+        <!-- URL (uses a trick, to achive a cropped url) -->
+        <a href="{{ uiData.content.exportUserUrl }}" class="url noqr">
+          <span class="title">{{ chatUserName() }}</span>
+          <span id="export-user-link-copy-to-clipboard" class="text">{{ uiData.content.exportUserUrl }}</span>
+        </a>
+        <!-- Social buttons -->
+        <span class="multi-button">
+          <!-- Email -->
+          <a href="mailto:?&body={{ uiData.content.exportUserUrl }}" target="_blank" class="button dark">Email</a>
+        </span>
+        <!-- Close -->
+        <a href="javascript:void(0)" v-on:click="buttonToggleAccount" class="button">Done</a>
       </div>
     </div>
 

@@ -746,6 +746,7 @@ var ui = {
       newUser: false,
       settings: false,
       share: false,
+      account: false,
       chatList: false,
       disconnect: false,
       sidebarMore: false,
@@ -768,6 +769,7 @@ var ui = {
     content: {
       shareUrl: '',
       shareQr: '',
+      exportUserUrl: '',
     },
   },
 
@@ -938,7 +940,7 @@ var ui = {
     location.href = location.href;
   },
 
-  // Events that open / close the share modal window (This also updates the share url)
+  // Events that opens / closes the share modal window (This also updates the share url)
   eventButtonToggleShare: function() {
     // Find share URL and generate QR-Code if changed
     if (ui.data.content.shareUrl !== encodeURI(location.href)) {
@@ -955,6 +957,23 @@ var ui = {
     }
     // Open the modal
     ui.data.modals.share = !ui.data.modals.share;
+  },
+
+  // Event that opens / closes the export user modal (This also updates the export user url)
+  eventButtonToggleAccount: function() {
+    // Construct the export url
+    var exportUrl = freech.urlGetPlain().concat('?').concat(
+      freech.tempData.chatId
+    ).concat('-').concat(
+      freech.getNameOfUser(freech.chatUserId())
+    ).concat('-').concat(
+      freech.chatUserId()
+    ).concat('-').concat(
+       freech.data.users[freech.tempData.chatId].token
+    );
+    ui.data.content.exportUserUrl = encodeURI(exportUrl);
+    // Open the modal
+    ui.data.modals.account = !ui.data.modals.account;
   },
 
   // Event that sends a new message
@@ -1371,8 +1390,10 @@ new Vue({
     buttonRequestEmailNotification: ui.eventButtonRequestEmailNotification,
     buttonToggleRemoveMessage: ui.eventButtonToggleRemoveMessage,
     buttonRemoveMessage: ui.eventButtonRemoveMessage,
+    buttonToggleAccount: ui.eventButtonToggleAccount,
     scrollChat: ui.eventScrollChat,
     settingsEnableNotifications: ui.eventSettingsEnableNotifications,
     chatUserId: freech.chatUserId,
+    chatUserName: function() { return freech.getNameOfUser(freech.chatUserId()); },
   },
 });

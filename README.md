@@ -21,7 +21,9 @@ Freech is a basic chat application and comes with the following features:
 ### Chat Users
 
 Your chat users are stored in the web client. This means your user is tied to the browser you use
-to access Freech. Notice that a new user is created for every chat you join.
+to access Freech. Notice that a new user is created for every chat you join. Each user is associated
+with a unique token, that will only be shared on user creation. To login to a chat as a given user,
+the client needs this token.
 
 ### NPM Dependencies
 
