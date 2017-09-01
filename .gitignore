@@ -6,8 +6,5 @@
 secret/
 data/
 
-# Ignore the test file and install instructions
+# Ignore the test file
 test.js
-install.txt
-api.txt
-package-lock.json

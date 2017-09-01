@@ -6,11 +6,22 @@ const Log = require('./classes/Log.js');
 const ChatServer = require('./classes/ChatServer.js');
 
 // Other setup
-Log.setLevel(Log.DEBUG);
-Log.setFile('/beta.log');
+Log.setLevel(Log.INFO);
+Log.setFile('/freech.log'); // Use false to disable logging
+
+// Server config (comment to use default)
+const serverOptions = {
+  //webRoot: '/web',
+  ssl: true,
+  //port: 443,
+  redirect: {
+    //port: 80,
+    location: 'www.freech.chat',
+  },
+};
 
 // Start the chat server
-let server = new ChatServer(8080, '/web', true);
+let server = new ChatServer(serverOptions);
 server.open();
 
 
@@ -18,15 +29,13 @@ server.open();
 * How to use this setup:
 *
 * Important Information:
-* This depends on the engine.io library, which
-* appears to break in nodejs v. 8.0.0. However
-* the app is tested and works in the current LTS
-* v. 6.10.3
+* The app is tested and works on the current LTS
+* v. 6.10.3 and on the current v. 8.4.0
 *
 * 1) Set the log to the desired level:
-*   DEBUG (all logs)
+*   DEBUG (all logs, not recommended)
 *   INFO
-*   WARNING
+*   WARNING (recommended if you need to conserve diskspace)
 *   ERROR
 *   FATAL
 * 2) Configure the server to your needs:

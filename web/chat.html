@@ -64,12 +64,18 @@
         <a href="javascript:void(0)" v-if="freechTemp.totalMessageCount !== freechTemp.messages.length && freechTemp.totalMessageCount !== -1" v-show="!freechTemp.loadingOldMessages"  class="button" v-on:click="buttonLoadOldMessages">Load Old Messages</a>
 
         <!-- A single message -->
-        <div v-for="message in freechTemp.messages" track-by="id" class="message {{ message.userId | userclass }}" transition="message">
+        <div v-for="message in freechTemp.messages" v-if="message.removed !== true" class="message {{ message.userId | userclass }}" transition="message">
 
           <!-- Left/Right aligned content of standart size -->
           <span class="content">
-            <!-- Sender & Timestamp -->
-            <span class="from" v-if="!message.hasOwnProperty('systemMessage')">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
+            <!-- Sender & Timestamp & Remove button -->
+            <span class="from" v-if="!message.hasOwnProperty('systemMessage')">
+              <span v-if="message.id !== input.removeMessage">{{ message.userId | username }} - {{ message.time | timestamp }}</span>
+              <a href="javascript:void(0)" v-if="message.userId === chatUserId() && message.id !== input.removeMessage" v-on:click="buttonToggleRemoveMessage(message.id)" class="edit-button">remove</a>
+              <span v-if="message.id === input.removeMessage" class="edit-notice">Are you sure?</span>
+              <a href="javascript:void(0)" v-if="message.id === input.removeMessage" v-on:click="buttonRemoveMessage" class="edit-button red">remove</a>
+              <a href="javascript:void(0)" v-if="message.id === input.removeMessage" v-on:click="buttonToggleRemoveMessage()" class="edit-button">cancel</a>
+            </span>
 
             <!-- Text Message -->
             <span class="text" v-if="message.hasOwnProperty('text') && !(message.hasOwnProperty('image') || message.hasOwnProperty('file'))">

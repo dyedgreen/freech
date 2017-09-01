@@ -194,6 +194,20 @@ class Chat {
         }
         break;
       }
+      // The user wants to update a message
+      case NetworkMessageType.USER.UPDATEMESSAGE: {
+        // Socket message format:
+        // { type, messageId, updateType(, updateData), time, hash }
+        if (
+          dataObject.hasOwnProperty('time') &&
+          dataObject.hasOwnProperty('hash') &&
+          dataObject.hasOwnProperty('updateType') &&
+          dataObject.hasOwnProperty('messageId')
+        ) {
+          this.updateMessage(dataObject.messageId, dataObject.updateType, dataObject.hasOwnProperty('updateData') ? dataObject.updateData : null, userId, dataObject.hash, dataObject.time);
+        }
+        break;
+      }
       // The user wants to load existing messages
       case NetworkMessageType.USER.LOADMESSAGES: {
         // Socket message format:
@@ -292,7 +306,7 @@ class Chat {
   */
   sendMessages(socket, count, loadedMessagesCount) {
     // Try to load the messages from the db
-    ChatData.loadChatMessages(this.id, count, loadedMessagesCount, messages => {
+    ChatData.loadChatMessages(this.id, count, loadedMessagesCount, this.messageCount, messages => {
       // Send the messages to the socket
       const socketResponse = {
         type: NetworkMessageType.DATA.MESSAGELIST,
@@ -341,6 +355,38 @@ class Chat {
     });
     // Log about this event
     Log.write(Log.DEBUG, 'Pushing new message to all connected users');
+  }
+
+  /**
+  * pushUserList() sends a
+  * given updated message
+  * to all users.
+  *
+  * @param {object} message
+  */
+  pushMessageUpdate(message) {
+    setImmediate(() => {
+      // Send the message to all connected users
+      try {
+        const socketMessage = {
+          type: NetworkMessageType.UPDATE.UPDATEMESSAGE,
+          message,
+        };
+        const socketMessageString = JSON.stringify(socketMessage);
+
+        this.connections.forEach(conn => {
+          // Send the messages, by registering each send in the event loop
+          setImmediate(() => {
+            conn.socket.send(socketMessageString);
+          });
+        });
+      } catch (e) {
+        // Tell the log about the error
+        Log.write(Log.ERROR, 'Could not send message message to connected users');
+      }
+    });
+    // Log about this event
+    Log.write(Log.DEBUG, 'Pushing message update to all connected users');
   }
 
   /**
@@ -560,9 +606,8 @@ class Chat {
   * them.
   *
   * @param {string} messageText the text of the message, can not be longer than 2000 chars!
-  * @param {string} messageImage the message image, max. 2M chars
   * @param {string} userId the id of the sending user
-  * @param {string} tokenHash the hashed token
+  * @param {string} hash the hashed token
   * @param {number} time the time the message was created (and the token was hashed)
   * @return {bool}
   */
@@ -618,6 +663,74 @@ class Chat {
   }
 
   /**
+  * updateMessage() will update
+  * a given message. Currently updating
+  * the message text and removing
+  * the message is supported.
+  * (A removed message is NOT removed from
+  * the database, but all outgoing data is replaced
+  * with a removed notification)
+  * TODO: Maybe add some logging
+  *
+  * @param {string} messageId
+  * @param {number} updateType (0=remove, 1=update text)
+  * @param {mixed} updateData (the data needed for the update, e.g. null for 0, string for 1)
+  * @param {string} userId
+  * @param {string} hash
+  * @param {number} time
+  */
+  updateMessage(messageId, updateType, updateData, userId, hash, time) {
+    // Validate the inputs
+    const userIndex = this.indexOfUser(userId);
+    if (
+      userIndex !== -1 &&
+      typeof messageId === 'string' &&
+      typeof updateType === 'number' &&
+      User.testHash(this.users[userIndex].token, hash, time)
+    ) {
+      // Try to load the message from the db (and make sure the user created the message)
+      ChatData.loadChatMessage(this.id, messageId, message => {
+        if (message && message.userId === ''.concat(userId) && message.removed !== true) {
+          // Determine the update operation
+          switch (updateType) {
+            // Remove the message
+            case 0: {
+              // Make sure the message is NO system message
+              if (!message.hasOwnProperty('systemMessage')) {
+                message.removed = true;
+                // Store the change
+                ChatData.updateChatMessage(this.id, messageId, message, success => {
+                  if (success) {
+                    // Here a new message is constructed since removed messages will mask all data!
+                    this.pushMessageUpdate({
+                      id: message.id,
+                      userId: message.userId,
+                      time: message.time,
+                      removed: true,
+                    });
+                  } else {
+                    // TODO: Currently this fails silently
+                    Log.write(Log.DEBUG, 'Could not update message to removed');
+                  }
+                });
+              }
+              break;
+            }
+            // Update the message text
+            case 1: {
+              // Validate the updateData
+              if (message.hasOwnProperty('text') && typeof updateData === 'string' && updateData.length > 0) {
+                // TODO: This is more elaborate, since the email / OpenGraph etc. would need updating
+              }
+              break;
+            }
+          }
+        }
+      });
+    }
+  }
+
+  /**
   * addFileUpload() will accept
   * a file-upload request. The
   * request needs to be validated
@@ -635,7 +748,7 @@ class Chat {
   * @param {number} fileSize
   * @param {string} messageText (max length is 500 chars; shorter than regular messages)
   * @param {string} userId the id of the sending user
-  * @param {string} tokenHash the hashed token
+  * @param {string} hash the hashed token
   * @param {number} time the time the message was created (and the token was hashed)
   */
   acceptFileUpload(socket, fileName, fileType, fileSize, messageText, userId, hash, time) {

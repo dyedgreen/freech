@@ -138,13 +138,21 @@ class ChatData {
   * @param {string} chatId
   * @param {number} count
   * @param {number} loadedMessagesCount
+  * @param {number} totalMessagesCount
   * @param {function} callback
   */
-  static loadChatMessages(chatId, count, loadedMessagesCount, callback) {
+  static loadChatMessages(chatId, count, loadedMessagesCount, totalMessageCount, callback) {
+    // Determine the load count and start (is lower than count if loadedMessagesCount + )
+    let loadStart = -(loadedMessagesCount + count);
+    let loadCount = count;
+    if (loadedMessagesCount + count > totalMessageCount) {
+      loadStart = 0;
+      loadCount = totalMessageCount - loadedMessagesCount;
+    }
     // This is a wrapper for a certain query
     ChatData.loadChatMessagesByQuery(
       { id: ''.concat(chatId) },
-      { fields: { messages: { $slice: [ -(loadedMessagesCount + count), count ] }, id: 0, name: 0, messageCount: 0, users: 0 } },
+      { fields: { messages: { $slice: [ loadStart, loadCount ] }, id: 0, name: 0, messageCount: 0, users: 0 } },
       callback
     );
   }
@@ -207,25 +215,31 @@ class ChatData {
                   let message = {
                     id: ''.concat(dbEntry.id),
                     userId: ''.concat(dbEntry.userId),
-                    time: ''.concat(dbEntry.time),
+                    time: +dbEntry.time,
                   };
-                  // Add all the available optional message fields
-                  if (dbEntry.hasOwnProperty('text')) message.text = ''.concat(dbEntry.text);
-                  if (typeof dbEntry.image === 'object') {
-                    message.image = {
-                      name: ''.concat(dbEntry.image.hasOwnProperty('name') ? dbEntry.image.name : 'unknown'),
-                      type: ''.concat(dbEntry.image.hasOwnProperty('type') ? dbEntry.image.type : 'image/png'),
-                    };
+                  // Determine if the message is removed
+                  if (dbEntry.hasOwnProperty('removed') && dbEntry.removed === true) {
+                    // The message is removed, only add the removed tag
+                    message.removed = true;
+                  } else {
+                    // Add all the available optional message fields
+                    if (dbEntry.hasOwnProperty('text')) message.text = ''.concat(dbEntry.text);
+                    if (typeof dbEntry.image === 'object') {
+                      message.image = {
+                        name: ''.concat(dbEntry.image.hasOwnProperty('name') ? dbEntry.image.name : 'unknown'),
+                        type: ''.concat(dbEntry.image.hasOwnProperty('type') ? dbEntry.image.type : 'image/png'),
+                      };
+                    }
+                    if (typeof dbEntry.file === 'object') {
+                      message.file = {
+                        name: ''.concat(dbEntry.file.hasOwnProperty('name') ? dbEntry.file.name : 'unknown'),
+                        type: ''.concat(dbEntry.file.hasOwnProperty('type') ? dbEntry.file.type : 'text/plain'),
+                      };
+                    }
+                    if (dbEntry.hasOwnProperty('emails')) message.emails = [].concat(dbEntry.emails);
+                    if (typeof dbEntry.urlPreview === 'object') message.urlPreview = dbEntry.urlPreview;
+                    if (dbEntry.hasOwnProperty('systemMessage')) message.systemMessage = ''.concat(dbEntry.systemMessage);
                   }
-                  if (typeof dbEntry.file === 'object') {
-                    message.file = {
-                      name: ''.concat(dbEntry.file.hasOwnProperty('name') ? dbEntry.file.name : 'unknown'),
-                      type: ''.concat(dbEntry.file.hasOwnProperty('type') ? dbEntry.file.type : 'text/plain'),
-                    };
-                  }
-                  if (dbEntry.hasOwnProperty('emails')) message.emails = [].concat(dbEntry.emails);
-                  if (typeof dbEntry.urlPreview === 'object') message.urlPreview = dbEntry.urlPreview;
-                  if (dbEntry.hasOwnProperty('systemMessage')) message.systemMessage = ''.concat(dbEntry.systemMessage);
                   // Add the message to the list
                   messages.push(message);
                 }
@@ -330,6 +344,47 @@ class ChatData {
       });
       // Log about this
       Log.write(Log.DEBUG, 'Chat messages was not added for chat with id', chatId);
+    }
+  }
+
+  /**
+  * updateChatMessage() will
+  * store a message update to
+  * the database. This will
+  * not validate the data!
+  *
+  * @param {string} chatId
+  * @param {string} messageId
+  * @param {object} newMessage
+  * @param {function} callback
+  */
+  static updateChatMessage(chatId, messageId, newMessage, callback) {
+    // Try to connect to the database
+    let chatsColl = db.collection('chats');
+    if (chatsColl) {
+      // Try to insert the message data
+      chatsColl.updateOne(
+        { id: ''.concat(chatId), 'messages.id': ''.concat(messageId) },
+        { $set: { 'messages.$': newMessage } },
+        (err, r) => {
+          // Test if db update was successfull
+          if (!err && r.modifiedCount === 1) {
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(true);
+            });
+          } else {
+            setImmediate(() => {
+              if (typeof callback === 'function') callback(false);
+            });
+          }
+      });
+    } else {
+      // Message could not be updated
+      setImmediate(() => {
+        if (typeof callback === 'function') callback(false);
+      });
+      // Log about this
+      Log.write(Log.DEBUG, 'Message could not be updated for chat with id', chatId);
     }
   }
 

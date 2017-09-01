@@ -16,13 +16,14 @@ class NetworkMessageType {
   // Message types send by user
   static get USER() {
     return {
-      HANDSHAKE: 0, /*NOTICE: SERVER HANDSHAKE IS 0 AS WELL*/
+      HANDSHAKE: 0, /*NOTE: SERVER HANDSHAKE IS 0 AS WELL*/
       MESSAGE: 1,
       LOADMESSAGES: 2,
       STATUSUPDATE: 3,
       EMAILNOTIFICATION: 4,
       FILE: 5,
       FILEPART: 6,
+      UPDATEMESSAGE: 7,
     };
   }
 
@@ -31,7 +32,7 @@ class NetworkMessageType {
     return {
       HANDSHAKE: 0, /*NOTE: CLIENT HANDSHAKE IS 0 AS WELL*/
       NEWMESSAGE: 10,
-      REMOVEDMESSAGE: 11,
+      UPDATEMESSAGE: 11,
       USERLIST: 12,
       USERSTATUS: 13,
     };

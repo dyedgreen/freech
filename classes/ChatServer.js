@@ -24,16 +24,21 @@ const ChatFiles = require('./ChatFiles.js');
 * serves static files and supports the following special files:
 * index.html  -- index file
 * 404.html    -- error file
+*
+* Options object:
+* { webRoot, ssl, port, redirect: { port, location } }
 */
 class ChatServer {
 
-  constructor(port, fileDir, useSSL) {
-    // Set the specified file directory (or fallback to the custom one)
-    this.fileDir = __dirname.replace('/classes', '').concat(fileDir || '/web');
-    // Setup the http(s) server, https is standart
-    this.serverPort = port || (useSSL === false ? 80 : 443);
-    this.serverUsesSSL = !(useSSL === false);
-    if (useSSL === false) {
+  constructor(options) {
+    // Make sure 'options' is an object
+    if (typeof options !== 'object') options = {};
+    // Set the specified file directory (or fallback to the default one)
+    this.fileDir = __dirname.replace('/classes', '').concat(options.webRoot || '/web');
+    // Setup the http(s) server, http is standard
+    this.serverPort = options.port || (options.ssl === true ? 443 : 80);
+    this.serverUsesSSL = (options.ssl === true);
+    if (this.serverUsesSSL === false) {
       // Open the server
       this.server = http.createServer();
     } else {
@@ -45,14 +50,26 @@ class ChatServer {
       // Open the server
       this.server = https.createServer(sslOptions);
     }
-
     // Hook up all the callbacks
     this.server.on('request', (req, res) => {
       this.handleRequest(req, res);
     });
-
     // Set up the chat manager
     this.chatManager = new ChatManager();
+    // Set up the redirect server is wanted
+    if (this.serverUsesSSL && typeof options.redirect === 'object' && typeof options.redirect.location === 'string') {
+      this.redirect = {
+        port: options.redirect.port || 80,
+        location: options.redirect.location,
+        server: http.createServer(),
+      };
+      // Hook up all the redirect callback
+      this.redirect.server.on('request', (req, res) => {
+        this.handleRedirect(req, res);
+      });
+    } else {
+      this.redirect = false;
+    }
     // Log about this
     Log.write(Log.DEBUG, 'Chat server instance created, ssl:', this.serverUsesSSL);
   }
@@ -67,7 +84,7 @@ class ChatServer {
   *
   * @param {number} newPort
   */
-  open(newPort) {
+  open(newPort, newRedirectPort) {
     // Test if the server is already listening to events
     if (this.server.listening) {
       return;
@@ -77,10 +94,19 @@ class ChatServer {
     if (typeof newPort === 'number') {
       this.serverPort = newPort;
     }
+    // Test if the newRedirectPort is a number, apply it if it is
+    if (typeof newRedirectPort === 'number' && this.redirect !== false) {
+      this.redirect.port = newRedirectPort;
+    }
     // Start up the server
     this.server.listen(this.serverPort);
     // Start the real-time server
     this.chatManager.open(this.server);
+    // Start the redirect server
+    if (this.redirect !== false) {
+      this.redirect.server.listen(this.redirect.port);
+      Log.write(Log.INFO, 'Redirect server instance opened at port', this.redirect.port);
+    }
     // Log about this
     Log.write(Log.INFO, 'Chat server instance opened at port', this.serverPort);
   }
@@ -104,6 +130,11 @@ class ChatServer {
     this.server.close();
     // Close the real-time server
     this.chatManager.close(callbackChatManager);
+    // Close the redirect server
+    if (this.redirect !== false) {
+      if (this.redirect.server.listening) this.redirect.server.close();
+      Log.write(Log.INFO, 'Redirect server instance closed at port', this.redirect.port);
+    }
     // Log about this
     Log.write(Log.INFO, 'Chat server instance closed at port', this.serverPort);
   }
@@ -140,7 +171,7 @@ class ChatServer {
             // General error response
             ApiResponse.sendData(res, null, true);
             // Log this
-            Log.write(Log.WARNING, 'Invalid api endpoint requested');
+            Log.write(Log.INFO, 'Invalid api endpoint requested');
           }
         }
         break;
@@ -150,6 +181,25 @@ class ChatServer {
         this.handleFile(req, res);
         break;
       }
+    }
+  }
+
+  /**
+  * handleRedirect() is the callback
+  * called on client connections to
+  * the redirect server. (If https/ssl
+  * is used, there is the option to provide
+  * an http server that redirects to https)
+  */
+  handleRedirect(req, res) {
+    // Log about this
+    Log.write(Log.DEBUG, 'Redirect server request recived');
+    // Send the redirect
+    if (this.redirect !== false) {
+      res.writeHead(301, {
+        'Location': `https://${this.redirect.location}`,
+      });
+      res.end();
     }
   }
 

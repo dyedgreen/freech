@@ -481,6 +481,22 @@ var freech = {
     }
     return false;
   },
+  socketMessageRemoveMessage: function(messageId) {
+    // NOTE: Type 7 is 'update' message and can also update the message text, but currently this is not supported
+    if (freech.chatExists() && freech.chatUserExists()) {
+      try {
+        var time = Date.now();
+        return JSON.stringify({
+          type: 7,
+          messageId: ''.concat(messageId),
+          updateType: 0, // 0 = remove
+          hash: freech.socketMessageHash(freech.data.users[freech.tempData.chatId].token, time),
+          time: time,
+        });
+      } catch (e) {}
+    }
+    return false;
+  },
 
   // Socket data sending / reciving functions
   socketConnect: function(callbackOpen, callbackClose, callbackMessagesLoaded) {
@@ -527,6 +543,19 @@ var freech = {
                 callbackMessagesLoaded(true);
                 break;
               }
+              // Message update was pushed by server (WILL CALL UI_UPDATE CALLBACK)
+              case 11: {
+                // Find and replace the updated message (the update is ignored, if the message is currently not loaded)
+                freech.tempData.messages.forEach(function(oldMessage, index) {
+                  if (oldMessage.id === dataObj.message.id) {
+                    // Update the messages data USES VUE $SET
+                    freech.tempData.messages.$set(index, dataObj.message);
+                  }
+                });
+                // Old messages callback
+                callbackMessagesLoaded(false);
+                break;
+              }
               // New user-list was recived
               case 12: {
                 // Update the user list
@@ -554,6 +583,12 @@ var freech = {
                 if (dataObj.totalMessageCount > freech.tempData.messages.length) freech.tempData.loadingOldMessages = false;
                 // Old messages callback
                 callbackMessagesLoaded(false);
+                // If all messages were removed, load more old messages
+                var allRemoved = true;
+                dataObj.messages.forEach(function(message) {
+                  if (!message.hasOwnProperty('removed')) allRemoved = false;
+                });
+                if (allRemoved) freech.socketLoadOldMessages();
                 break;
               }
               // The requested email notification has been send
@@ -690,6 +725,13 @@ var freech = {
       freech.tempData.socket.send(socketMessage);
     }
   },
+  socketRemoveMessage: function(messageId) {
+    // Create the network message string
+    var socketMessage = freech.socketMessageRemoveMessage(messageId);
+    if (socketMessage && freech.tempData.connected) {
+      freech.tempData.socket.send(socketMessage);
+    }
+  },
 
 };
 
@@ -735,6 +777,7 @@ var ui = {
     newUserName: '',
     newMessage: '',
     newFile: false, /* can be object: { name, type, data } */
+    removeMessage: '', /* is the message id */
   },
 
   // Feature support detected
@@ -1032,6 +1075,19 @@ var ui = {
     }
   },
 
+  // Event that displays the message delete prompt or hides it
+  eventButtonToggleRemoveMessage: function(messageId) {
+    ui.input.removeMessage = ui.input.removeMessage.length > 0 ? '' : ''.concat(messageId);
+  },
+
+  // Event that deletes a given message
+  eventButtonRemoveMessage: function() {
+    if (ui.input.removeMessage.length > 0) {
+      freech.socketRemoveMessage(ui.input.removeMessage);
+      ui.input.removeMessage = '';
+    }
+  },
+
   // Event that is executed on scroll in the chat messages-view
   eventScrollChat: function() {
     var chatWindow = document.getElementById('chat-messages-scroll');
@@ -1313,6 +1369,8 @@ new Vue({
     buttonToggleChatUserActive: ui.eventButtonToggleChatUserActive,
     buttonToggleSidebarMore: ui.eventButtonToggleSidebarMore,
     buttonRequestEmailNotification: ui.eventButtonRequestEmailNotification,
+    buttonToggleRemoveMessage: ui.eventButtonToggleRemoveMessage,
+    buttonRemoveMessage: ui.eventButtonRemoveMessage,
     scrollChat: ui.eventScrollChat,
     settingsEnableNotifications: ui.eventSettingsEnableNotifications,
     chatUserId: freech.chatUserId,
