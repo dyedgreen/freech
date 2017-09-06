@@ -293,7 +293,7 @@ var freech = {
       callback(false);
     }
   },
-  chatLogInUser(name, userId, userToken, callback) {
+  chatLogInUser: function(name, userId, userToken, callback) {
     // If supplied a name, userId, userToken; this will try to activate the user (if active->true; else->false)
     if (freech.chatExists() && typeof name === 'string' && name.length > 0) {
       // Send activation request to server
