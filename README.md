@@ -4,7 +4,7 @@ Freech is a simple chat server that comes with a web client. The server side par
 with a MongoDB database. The Freech chat protocol is a simple JSON based protocol that is build
 on top of the EngineIO WebSocket implementation.
 
-See a sample server here: https://www.freech.chat
+~~See a sample server here: https://www.freech.chat~~
 
 ***
 
